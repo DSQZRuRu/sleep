@@ -1,6 +1,9 @@
 package com.somnia.ui.theme
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -19,7 +22,7 @@ object SomniaColors {
     val Teal = Color(0xFF7FD6C7)
     val Gold = Color(0xFFFFD98A)
     val Moon = Color(0xFFE8EAF6)
-    val Muted = Color(0xFF8C93B8)
+    val Muted = Color(0xFFAEB4D6)
     val Dawn = Color(0xFF3A2F5B)
     val Awake = Color(0xFFF2A07B)
     val Light = Color(0xFF8FA4FF)
@@ -46,19 +49,25 @@ private val scheme = darkColorScheme(
     onSurfaceVariant = SomniaColors.Muted,
     surfaceContainer = SomniaColors.Surface,
     surfaceContainerHigh = SomniaColors.SurfaceHigh,
-    outline = Color(0xFF3B4470),
+    outline = Color(0xFF5A6496),
 )
 
 private val base = Typography()
 private val typography = Typography(
     displayLarge = base.displayLarge.copy(fontWeight = FontWeight.Light, letterSpacing = (-1).sp),
     displayMedium = base.displayMedium.copy(fontWeight = FontWeight.Light),
-    headlineMedium = base.headlineMedium.copy(fontWeight = FontWeight.Light),
+    headlineMedium = base.headlineMedium.copy(fontWeight = FontWeight.Normal),
     titleLarge = base.titleLarge.copy(fontWeight = FontWeight.Normal),
     labelSmall = TextStyle(fontFamily = FontFamily.Default, fontSize = 11.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.Medium),
 )
 
 @Composable
 fun SomniaTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = scheme, typography = typography, content = content)
+    MaterialTheme(colorScheme = scheme, typography = typography) {
+        // Surface racine : fixe la couleur de contenu par défaut (texte clair sur fond nuit).
+        // Sans elle, tout Text sans couleur explicite était noir, donc illisible.
+        Surface(modifier = Modifier.fillMaxSize(), color = SomniaColors.Night, contentColor = SomniaColors.Moon) {
+            content()
+        }
+    }
 }

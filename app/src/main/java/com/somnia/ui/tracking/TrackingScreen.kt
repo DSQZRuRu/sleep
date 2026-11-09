@@ -67,15 +67,15 @@ fun TrackingScreen(status: TrackingStatus, stage: CompanionStage) {
         Spacer(Modifier.height(24.dp))
         Text(TimeMath.format(Clock.minuteOfDay(now)), style = MaterialTheme.typography.displayLarge, color = SomniaColors.Muted)
         status.startedAt?.let {
-            Text("Nuit commencée il y a ${TimeMath.formatDuration(((now - it) / 60_000L).toInt())}", color = Color(0xFF5A6085))
+            Text("Nuit commencée il y a ${TimeMath.formatDuration(((now - it) / 60_000L).toInt())}", color = Color(0xFF8A90B4))
         }
         status.alarmAt?.let {
-            Text("Réveil au plus tard à ${TimeMath.format(Clock.minuteOfDay(it))}", color = Color(0xFF5A6085))
+            Text("Réveil au plus tard à ${TimeMath.format(Clock.minuteOfDay(it))}", color = Color(0xFF8A90B4))
         }
-        if (status.micActive) Text("Niveau sonore analysé localement, sans enregistrement", style = MaterialTheme.typography.bodySmall, color = Color(0xFF454B6B))
+        if (status.micActive) Text("Niveau sonore analysé localement, sans enregistrement", style = MaterialTheme.typography.bodySmall, color = Color(0xFF6E7499))
         Spacer(Modifier.height(32.dp))
         Text("Vous pouvez éteindre l'écran.\nBrumi veille avec vous. Bonne nuit ✦",
-            color = Color(0xFF5A6085), style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF8A90B4), style = MaterialTheme.typography.bodyMedium,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         Spacer(Modifier.height(48.dp))
         OutlinedButton(onClick = { confirm = true }, modifier = Modifier.fillMaxWidth()) {
