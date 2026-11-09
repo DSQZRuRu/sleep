@@ -17,7 +17,22 @@ android {
         versionName = "0.1.0"
     }
 
+    // Clé de debug fixe, versionnée : chaque APK de CI a la même signature,
+    // donc une nouvelle version s'installe par-dessus l'ancienne.
+    // (Clé publique de debug uniquement, à ne jamais utiliser pour une publication.)
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
