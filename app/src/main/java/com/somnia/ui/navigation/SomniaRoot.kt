@@ -129,6 +129,7 @@ private fun MainNavigation(container: AppContainer) {
                     containerViewModel { HomeViewModel(container) },
                     onSettings = { nav.navigate("settings") },
                     onOpenTip = { nav.navigate(Tab.TIPS.route) { launchSingleTop = true } },
+                    onOpenJournal = { nav.navigate(Tab.JOURNAL.route) { launchSingleTop = true } },
                 )
             }
             composable(Tab.HISTORY.route) {

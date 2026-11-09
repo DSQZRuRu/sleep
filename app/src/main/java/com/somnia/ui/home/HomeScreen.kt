@@ -34,7 +34,12 @@ import com.somnia.domain.game.CompanionLogic
 import com.somnia.domain.sleep.SleepScoreCalculator
 import com.somnia.domain.sleep.TimeMath
 import com.somnia.tracking.SleepTrackingService
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import com.somnia.ui.components.CompanionView
+import com.somnia.ui.components.CreatureView
 import com.somnia.ui.components.ProgressBar
 import com.somnia.ui.components.SectionLabel
 import com.somnia.ui.components.SomniaCard
@@ -45,8 +50,10 @@ import com.somnia.ui.theme.SomniaColors
 import java.time.LocalTime
 
 @Composable
-fun HomeScreen(vm: HomeViewModel, onSettings: () -> Unit, onOpenTip: () -> Unit) {
+fun HomeScreen(vm: HomeViewModel, onSettings: () -> Unit, onOpenTip: () -> Unit, onOpenJournal: () -> Unit) {
     val ui by vm.ui.collectAsStateWithLifecycle()
+    val bed by vm.bed.collectAsStateWithLifecycle()
+    val event by vm.event.collectAsStateWithLifecycle()
     val context = LocalContext.current
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refreshUsageEstimate() }
 
@@ -75,6 +82,38 @@ fun HomeScreen(vm: HomeViewModel, onSettings: () -> Unit, onOpenTip: () -> Unit)
                     ProgressBar(ui.level.xpIntoLevel / ui.level.xpForLevel.toFloat(), color = SomniaColors.Gold)
                     Text("${ui.level.xpIntoLevel} / ${ui.level.xpForLevel} XP", style = MaterialTheme.typography.labelSmall, color = SomniaColors.Muted)
                 }
+            }
+        }
+
+        event?.let { e ->
+            val accent = Color(e.accent)
+            Column(
+                Modifier.fillMaxWidth()
+                    .background(Brush.horizontalGradient(listOf(accent.copy(alpha = 0.35f), SomniaColors.Surface)), RoundedCornerShape(24.dp))
+                    .clickable(onClick = onOpenJournal)
+                    .padding(16.dp),
+            ) {
+                Text("${e.symbol} ${e.name}", style = MaterialTheme.typography.titleMedium, color = accent)
+                Text("Créatures de saison et poussière d'étoiles ×${e.stardustMultiplier}".replace(".0", ""),
+                    style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        // Le lit de ce soir
+        SomniaCard(Modifier.clickable(onClick = onOpenJournal)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    SectionLabel("Ce soir dans votre lit")
+                    Text(
+                        if (bed.isEmpty()) "Personne pour l'instant : installez une créature depuis le Carnet pour gagner des bonus d'Éclat."
+                        else bed.joinToString(" · ") { "${it.creature.name} ${it.creature.bonus.symbol}+${it.bonusPct} %" },
+                        style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+                    )
+                }
+                Text("✦ ${ui.game.stardust}", color = SomniaColors.Gold, style = MaterialTheme.typography.titleSmall)
+            }
+            if (bed.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                bed.forEach { CreatureView(it.creature.look, Modifier.size(56.dp)) }
             }
         }
 

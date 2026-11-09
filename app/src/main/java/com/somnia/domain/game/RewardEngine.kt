@@ -12,6 +12,10 @@ data class GameSnapshot(
     val unlockedBadges: Set<String>,
     val challengesCompletedTotal: Int,
     val completedThisWeek: Set<String>,
+    val stardust: Int = 0,
+    val bestDream: Int = 0,
+    val equipped: List<EquippedCreature> = emptyList(),
+    val maxCreatureLevel: Int = 1,
 )
 
 data class NightRewards(
@@ -27,7 +31,11 @@ data class NightRewards(
     val stageBefore: CompanionStage,
     val stageAfter: CompanionStage,
     val totalXpAfter: Int,
+    val dream: DreamScore,
+    val duplicateStardust: Int,
+    val event: SeasonalEvent?,
 ) {
+    val stardustGained: Int get() = dream.stardust + duplicateStardust
     val xpTotal: Int get() = xpLines.sumOf { it.xp }
     val leveledUp: Boolean get() = levelAfter > levelBefore
     val evolved: Boolean get() = stageAfter != stageBefore
@@ -45,16 +53,23 @@ object RewardEngine {
      * Créatures de la nuit. Aucune n'apparaît si le sommeil réel est < 3 h : on récompense
      * le sommeil, pas le temps passé au lit. Le nombre augmente avec la qualité et la régularité.
      */
-    fun rollCreatures(n: NightSummary, random: Random): List<DreamCreature> {
+    fun rollCreatures(n: NightSummary, random: Random, event: SeasonalEvent? = null): List<DreamCreature> {
         if (n.totalSleepMin < 180) return emptyList()
         val type = sleepType(n)
         var count = 1
         if (n.score >= 70) count++
         if (n.regular) count++
         val pool = DreamCreatureCatalog.ofType(type)
+        val eventPool = event?.let { DreamCreatureCatalog.ofEvent(it.id) }.orEmpty()
         return (0 until count).map {
             val rarity = rollRarity(random, bonus = n.regular)
-            pool.filter { c -> c.rarity == rarity }.ifEmpty { pool.filter { c -> c.rarity == Rarity.COMMON } }.random(random)
+            // Pendant un événement, une bonne nuit peut attirer une créature de saison (40 %).
+            val fromEvent = eventPool.isNotEmpty() && n.score >= 50 && random.nextInt(100) < 40
+            val source = if (fromEvent) eventPool else pool
+            source.filter { c -> c.rarity == rarity }
+                .ifEmpty { source.filter { c -> c.rarity == Rarity.COMMON } }
+                .ifEmpty { source.sortedBy { c -> c.rarity.ordinal }.take(1) }
+                .random(random)
         }
     }
 
@@ -74,6 +89,8 @@ object RewardEngine {
         snapshot: GameSnapshot,
         nightsCount: Int,
         regularityScore: Int,
+        previousScore: Int? = null,
+        event: SeasonalEvent? = null,
         random: Random = Random(night.sessionId * 31 + night.nightDay),
     ): NightRewards {
         val lines = XpCalculator.forNight(night).toMutableList()
@@ -89,8 +106,14 @@ object RewardEngine {
         }
         completed.forEach { lines += XpCalculator.Line("Défi : ${it.title}", it.xpReward) }
 
-        val creatures = rollCreatures(night, random)
+        val creatures = rollCreatures(night, random, event)
         val newIds = creatures.map { it.id }.filter { it !in snapshot.ownedCreatureIds }.toSet()
+        // Les créatures déjà connues (ou en double cette nuit) se dissolvent en poussière d'étoiles.
+        val seen = snapshot.ownedCreatureIds.toMutableSet()
+        var duplicateDust = 0
+        for (c in creatures) {
+            if (!seen.add(c.id)) duplicateDust += CreatureProgression.duplicateStardust(c.rarity)
+        }
         if (newIds.isNotEmpty()) lines += XpCalculator.Line("Nouvelle créature", 15 * newIds.size)
 
         val care = CompanionLogic.careForNight(night.score, night.regular, night.healthyDuration)
@@ -101,16 +124,24 @@ object RewardEngine {
         val levelBefore = XpCalculator.levelFor(snapshot.totalXp).level
         val levelAfter = XpCalculator.levelFor(snapshot.totalXp + xpGain).level
 
+        val dream = DreamScoreCalculator.compute(
+            night, previousScore, streak.state.current, snapshot.equipped, stageAfter, event,
+        )
+
         val ctx = BadgeContext(
             nightsCount = nightsCount,
             streak = streak.state.current,
             level = levelAfter,
-            uniqueCreatures = (snapshot.ownedCreatureIds + newIds).size,
+            uniqueCreatures = (snapshot.ownedCreatureIds + newIds).count { DreamCreatureCatalog.byId(it)?.eventId == null },
             totalCreatures = DreamCreatureCatalog.all.size,
             challengesCompleted = snapshot.challengesCompletedTotal + completed.size,
             lastNight = night,
             companionStage = stageAfter,
             regularityScore = regularityScore,
+            equippedCount = snapshot.equipped.size,
+            maxCreatureLevel = snapshot.maxCreatureLevel,
+            bestDream = maxOf(snapshot.bestDream, dream.total),
+            eventCreatureIds = (snapshot.ownedCreatureIds + newIds).filter { DreamCreatureCatalog.byId(it)?.eventId != null }.toSet(),
         )
         val newBadges = BadgeCatalog.earned(ctx).filter { it !in snapshot.unlockedBadges }.mapNotNull { BadgeCatalog.byId(it) }
 
@@ -127,6 +158,9 @@ object RewardEngine {
             stageBefore = stageBefore,
             stageAfter = stageAfter,
             totalXpAfter = snapshot.totalXp + xpGain,
+            dream = dream,
+            duplicateStardust = duplicateDust,
+            event = event,
         )
     }
 }

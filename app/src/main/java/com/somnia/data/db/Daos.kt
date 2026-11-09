@@ -112,6 +112,24 @@ interface GameDao {
     @Query("SELECT COUNT(*) FROM challenge_completions")
     suspend fun completionCount(): Int
 
+    @Query("SELECT * FROM creature_progress")
+    fun observeProgress(): Flow<List<CreatureProgressEntity>>
+
+    @Query("SELECT * FROM creature_progress")
+    suspend fun progress(): List<CreatureProgressEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertProgress(items: List<CreatureProgressEntity>)
+
+    @Query("UPDATE creature_progress SET slot = NULL WHERE slot = :slot")
+    suspend fun clearSlot(slot: Int)
+
+    @Query("UPDATE creature_progress SET slot = :slot WHERE creatureId = :id")
+    suspend fun setSlot(id: String, slot: Int?)
+
+    @Query("UPDATE creature_progress SET level = :level WHERE creatureId = :id")
+    suspend fun setLevel(id: String, level: Int)
+
     @Upsert
     suspend fun upsertReward(reward: NightRewardEntity)
 

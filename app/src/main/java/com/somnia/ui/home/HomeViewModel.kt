@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -64,6 +65,14 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
             usageEstimate = estimate,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUi())
+
+    val bed: StateFlow<List<com.somnia.data.repository.OwnedCreature>> = c.gameRepository.owned
+        .map { owned -> owned.filter { it.slot != null }.sortedBy { it.slot } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val event: StateFlow<com.somnia.domain.game.SeasonalEvent?> = c.gamePrefs.eventOverride
+        .map { com.somnia.domain.game.EventCalendar.active(LocalDate.now(Clock.zone()), it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun setAlarmTonight(v: Boolean) { alarmTonight.value = v }
 

@@ -67,6 +67,7 @@ data class NightDetailUi(
     val session: SleepSessionEntity? = null,
     val stages: List<SleepStage> = emptyList(),
     val noise: List<Float> = emptyList(),
+    val rewards: com.somnia.data.repository.StoredRewards? = null,
     val deleted: Boolean = false,
 )
 
@@ -78,7 +79,9 @@ class NightDetailViewModel(private val c: AppContainer, private val id: Long) : 
         viewModelScope.launch {
             val s = c.sleepRepository.session(id)
             val epochs = c.sleepRepository.epochs(id)
-            _ui.value = NightDetailUi(s, epochs.map { SleepStage.fromCode(it.stage) }, epochs.map { it.noiseDb })
+            _ui.value = NightDetailUi(
+                s, epochs.map { SleepStage.fromCode(it.stage) }, epochs.map { it.noiseDb }, c.gameRepository.reward(id),
+            )
         }
     }
 

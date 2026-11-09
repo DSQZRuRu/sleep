@@ -129,6 +129,10 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
         }
 
         if (rewards != null) {
+            AnimatedVisibility(phase >= 2, enter = fadeIn() + slideInVertically { it / 3 }) {
+                DreamReveal(rewards)
+            }
+
             AnimatedVisibility(phase >= 3, enter = fadeIn()) {
                 SomniaCard {
                     SectionLabel("Points d'expérience")
@@ -258,4 +262,57 @@ fun rarityColor(r: Rarity) = when (r) {
     Rarity.RARE -> SomniaColors.Teal
     Rarity.EPIC -> SomniaColors.Lavender
     Rarity.LEGENDARY -> SomniaColors.Gold
+}
+
+
+/** Éclat de rêve : score de sommeil + bonus des créatures du lit, puis poussière d'étoiles. */
+@Composable
+private fun DreamReveal(rewards: com.somnia.data.repository.StoredRewards) {
+    val total = remember { Animatable(rewards.dreamBase.toFloat()) }
+    var shown by remember { mutableIntStateOf(0) }
+    LaunchedEffect(rewards) {
+        for (i in 1..rewards.dreamLines.size) { delay(350); shown = i }
+        delay(300)
+        total.animateTo(rewards.dreamScore.toFloat(), tween(900, easing = FastOutSlowInEasing))
+        shown = rewards.dreamLines.size + 1
+    }
+    SomniaCard {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                SectionLabel("Éclat de rêve")
+                Text("Score de sommeil ${rewards.dreamBase} + bonus du lit", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+            }
+            Text("${total.value.toInt()}", style = MaterialTheme.typography.displayMedium, color = SomniaColors.Gold)
+        }
+        rewards.event?.let {
+            Text("${it.symbol} ${it.name}", style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color(it.accent))
+        }
+        rewards.dreamLines.forEachIndexed { i, line ->
+            AnimatedVisibility(shown > i, enter = fadeIn() + slideInVertically { -it }) {
+                Row(Modifier.fillMaxWidth()) {
+                    Text(line.label, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall,
+                        color = if (line.active) SomniaColors.Moon else SomniaColors.Muted)
+                    Text(if (line.active) "+${line.pct} %" else "condition non remplie", style = MaterialTheme.typography.bodySmall,
+                        color = if (line.active) SomniaColors.Gold else SomniaColors.Muted)
+                }
+            }
+        }
+        if (rewards.dreamLines.isEmpty()) {
+            Text("Installez des créatures dans votre lit (onglet Carnet) pour faire briller vos nuits.",
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+        }
+        AnimatedVisibility(shown > rewards.dreamLines.size, enter = fadeIn() + scaleIn()) {
+            Column {
+                Row(Modifier.fillMaxWidth()) {
+                    Text("Poussière d'étoiles", Modifier.weight(1f))
+                    Text("+${rewards.stardustGained} ✦", color = SomniaColors.Gold, style = MaterialTheme.typography.titleMedium)
+                }
+                rewards.stardustLines.filter { it.active }.forEach {
+                    Text("${it.label} : +${it.pct} %", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                }
+                if (rewards.duplicateStardust > 0) Text("Créatures déjà connues dissoutes en poussière : +${rewards.duplicateStardust} ✦",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+            }
+        }
+    }
 }

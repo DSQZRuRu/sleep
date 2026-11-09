@@ -3,6 +3,7 @@ package com.somnia
 import android.content.Context
 import com.somnia.alarm.SmartAlarmScheduler
 import com.somnia.data.db.SomniaDatabase
+import com.somnia.data.repository.GamePrefs
 import com.somnia.data.repository.GameRepository
 import com.somnia.data.repository.NightProcessor
 import com.somnia.data.repository.ProfileRepository
@@ -17,8 +18,9 @@ class AppContainer(context: Context) {
     val database: SomniaDatabase = SomniaDatabase.create(appContext)
     val sleepRepository = SleepRepository(database.sleepDao())
     val profileRepository = ProfileRepository(database.profileDao())
-    val gameRepository = GameRepository(database.gameDao())
-    val nightProcessor = NightProcessor(database)
+    val gamePrefs = GamePrefs(appContext)
+    val gameRepository = GameRepository(database)
+    val nightProcessor = NightProcessor(database) { gamePrefs.activeEvent() }
     val alarmScheduler = SmartAlarmScheduler(appContext)
     val usageDetector = PhoneUsageDetector(appContext)
     val reminderPrefs = ReminderPrefs(appContext)

@@ -33,14 +33,15 @@ Les APK sont signés avec une clé de debug fixe (`app/debug.keystore`), donc ch
 
 ### Gamification (univers 100 % original)
 
-- **Brumi**, compagnon de brume : Œuf → Bébé → Brumi → Grand Brumi → Brumi astral. Il grandit avec des points de soin (qualité + régularité), ne régresse jamais, et son humeur reflète les 3 dernières nuits.
-- **14 créatures du rêve** dessinées en Canvas (aucune image), réparties par type de nuit (léger, profond, agité) et par rareté, à collectionner dans le **Carnet**.
-- **XP et niveaux** : durée (sur le sommeil *réel*, plafonnée à 9 h), efficacité ≥ 85 %, respect de l'heure de coucher, lever régulier.
-- **Séries** de nuits régulières, avec **une protection par semaine ISO** pour une nuit ratée.
-- **3 défis hebdomadaires** tournants et **15 badges**.
-- **Écran du matin animé** : score, XP ligne par ligne, série, créatures, évolution, badges, puis question sur le ressenti.
+- **Brumi**, compagnon de brume : Œuf → Bébé → Brumi → Grand Brumi → Brumi astral. Il grandit avec la qualité et la régularité des nuits, ne régresse jamais, et donne un bonus permanent d'Éclat (de 0 à +15 %) selon son stade.
+- **Éclat de rêve**, second score : score de sommeil × (1 + bonus actifs). La **poussière d'étoiles ✦** gagnée chaque nuit découle de l'Éclat.
+- **Le lit** : jusqu'à 3 créatures installées (places débloquées aux niveaux 1, 3 et 6). Chaque créature a un bonus lié à un comportement sain (coucher à l'heure, 7–9 h, sommeil profond, efficacité, lever régulier, série, rebond, poussière). Le bonus ne compte **que si la nuit remplit sa condition**. L'**Harmonie** ajoute +3 % ou +8 % quand 2 ou 3 créatures du même type sont installées.
+- **Niveaux des créatures** (1 à 10) achetés en poussière d'étoiles. Une créature déjà connue rencontrée à nouveau se dissout en poussière.
+- **23 créatures du rêve**, dessinées en Canvas : 14 permanentes et 9 exclusives aux **événements saisonniers** (Nuit des Givres à Noël, Nuit des Lueurs, Éveil des Songes, Nuits Courtes), qui doublent leur bonus pendant leur saison et augmentent la poussière gagnée.
+- **XP et niveaux**, **séries** avec une protection par semaine, **3 défis hebdomadaires**, **25 badges**.
+- **Écran du matin animé** : score, Éclat de rêve bonus par bonus, XP, série, créatures, évolution, badges, ressenti.
 
-Garde-fous : aucune récompense ne demande de garder l'écran allumé (l'écran de nuit dit explicitement qu'on peut l'éteindre). Rester au lit sans dormir ne rapporte rien : pas de créature sous 3 h de sommeil réel, pas d'XP de durée au-delà de 9 h, et l'efficacité est récompensée.
+Garde-fous : aucune récompense ne demande de garder l'écran allumé. Rester au lit sans dormir ne rapporte rien : sous 3 h de sommeil réel, il n'y a ni créature, ni bonus d'Éclat, ni poussière. L'XP de durée s'arrête à 9 h, et les bonus récompensent la régularité et l'efficacité.
 
 ## Architecture
 

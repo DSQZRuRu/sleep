@@ -149,6 +149,18 @@ fun NightDetailScreen(vm: NightDetailViewModel, onBack: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
             }
         }
+        ui.rewards?.takeIf { it.dreamScore > 0 }?.let { r ->
+            SomniaCard {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    SectionLabel("Éclat de rêve", Modifier.weight(1f))
+                    Text("${r.dreamScore}", style = MaterialTheme.typography.titleLarge, color = SomniaColors.Gold)
+                }
+                r.dreamLines.filter { it.active }.forEach {
+                    Text("${it.label} : +${it.pct} %", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                }
+                Text("+${r.stardustGained} ✦ poussière d'étoiles", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Gold)
+            }
+        }
         s.alarmRangAt?.let {
             SomniaCard {
                 SectionLabel("Réveil intelligent")

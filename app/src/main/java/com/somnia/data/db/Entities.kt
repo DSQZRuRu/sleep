@@ -87,6 +87,16 @@ data class GameStateEntity(
     val lastStreakNightDay: Long? = null,
     val freezeUsedWeek: Int? = null,
     val companionCare: Int = 0,
+    val stardust: Int = 0,
+    val bestDream: Int = 0,
+)
+
+/** Niveau d'une créature possédée et sa place dans le lit (0..2, null = au carnet). */
+@Entity(tableName = "creature_progress")
+data class CreatureProgressEntity(
+    @PrimaryKey val creatureId: String,
+    val level: Int = 1,
+    val slot: Int? = null,
 )
 
 @Entity(tableName = "creature_catches", indices = [Index("creatureId")])
@@ -128,4 +138,11 @@ data class NightRewardEntity(
     val stageBefore: String,
     val stageAfter: String,
     val totalXpAfter: Int,
+    val dreamBase: Int = 0,
+    val dreamScore: Int = 0,
+    /** "label|pct|1/0" séparés par ";" (bonus d'Éclat puis, après "##", bonus de poussière) */
+    val dreamLines: String = "",
+    val stardustGained: Int = 0,
+    val duplicateStardust: Int = 0,
+    val eventId: String? = null,
 )

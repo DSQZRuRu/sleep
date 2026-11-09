@@ -4,12 +4,16 @@ import androidx.room.withTransaction
 import com.somnia.data.db.BadgeUnlockEntity
 import com.somnia.data.db.ChallengeCompletionEntity
 import com.somnia.data.db.CreatureCatchEntity
+import com.somnia.data.db.CreatureProgressEntity
 import com.somnia.data.db.GameStateEntity
 import com.somnia.data.db.NightRewardEntity
 import com.somnia.data.db.SessionSource
 import com.somnia.data.db.SleepSessionEntity
 import com.somnia.data.db.SomniaDatabase
+import com.somnia.domain.game.DreamCreatureCatalog
+import com.somnia.domain.game.EquippedCreature
 import com.somnia.domain.game.GameSnapshot
+import com.somnia.domain.game.SeasonalEvent
 import com.somnia.domain.game.NightRewards
 import com.somnia.domain.game.RewardEngine
 import com.somnia.domain.game.StreakState
@@ -28,7 +32,7 @@ import kotlin.math.roundToInt
  * Cas d'usage central : clôture d'une nuit.
  * Analyse des phases → score → ajustement du profil → récompenses, dans une seule transaction.
  */
-class NightProcessor(private val db: SomniaDatabase) {
+class NightProcessor(private val db: SomniaDatabase, private val activeEvent: () -> SeasonalEvent? = { null }) {
 
     private val sleepDao = db.sleepDao()
     private val gameDao = db.gameDao()
@@ -137,6 +141,12 @@ class NightProcessor(private val db: SomniaDatabase) {
 
         val state = gameDao.state() ?: GameStateEntity()
         val catches = gameDao.catches()
+        val progress = gameDao.progress()
+        val equipped = progress.filter { it.slot != null }.sortedBy { it.slot }.mapNotNull { p ->
+            DreamCreatureCatalog.byId(p.creatureId)?.let { EquippedCreature(it, p.level) }
+        }
+        val previousScore = sleepDao.recentProcessed(2).firstOrNull { it.id != session.id }?.score
+        val event = activeEvent()
         val snapshot = GameSnapshot(
             totalXp = state.totalXp,
             streak = StreakState(state.streak, state.bestStreak, state.lastStreakNightDay, state.freezeUsedWeek),
@@ -146,8 +156,15 @@ class NightProcessor(private val db: SomniaDatabase) {
             unlockedBadges = gameDao.badges().map { it.badgeId }.toSet(),
             challengesCompletedTotal = gameDao.completionCount(),
             completedThisWeek = gameDao.completions(week).map { it.challengeId }.toSet(),
+            stardust = state.stardust,
+            bestDream = state.bestDream,
+            equipped = equipped,
+            maxCreatureLevel = progress.maxOfOrNull { it.level } ?: 1,
         )
-        val rewards = RewardEngine.process(night, weekNights, snapshot, sleepDao.processedCount(), regularity)
+        val rewards = RewardEngine.process(
+            night, weekNights, snapshot, sleepDao.processedCount(), regularity,
+            previousScore = previousScore, event = event,
+        )
         val now = System.currentTimeMillis()
 
         val s = rewards.streak.state
@@ -157,10 +174,13 @@ class NightProcessor(private val db: SomniaDatabase) {
                 streak = s.current, bestStreak = s.best,
                 lastStreakNightDay = s.lastNightDay, freezeUsedWeek = s.freezeUsedWeek,
                 companionCare = state.companionCare + rewards.careGained,
+                stardust = state.stardust + rewards.stardustGained,
+                bestDream = maxOf(state.bestDream, rewards.dream.total),
             )
         )
         if (rewards.creatures.isNotEmpty()) {
             gameDao.insertCatches(rewards.creatures.map { CreatureCatchEntity(creatureId = it.id, sessionId = session.id, caughtAt = now) })
+            gameDao.insertProgress(rewards.creatures.map { CreatureProgressEntity(it.id) })
         }
         gameDao.insertBadges(rewards.newBadges.map { BadgeUnlockEntity(it.id, now) })
         gameDao.insertChallengeCompletions(rewards.completedChallenges.map { ChallengeCompletionEntity(week, it.id, now) })
@@ -180,6 +200,12 @@ class NightProcessor(private val db: SomniaDatabase) {
                 stageBefore = rewards.stageBefore.name,
                 stageAfter = rewards.stageAfter.name,
                 totalXpAfter = rewards.totalXpAfter,
+                dreamBase = rewards.dream.base,
+                dreamScore = rewards.dream.total,
+                dreamLines = encodeDreamLines(rewards.dream.lines) + "##" + encodeDreamLines(rewards.dream.stardustLines),
+                stardustGained = rewards.stardustGained,
+                duplicateStardust = rewards.duplicateStardust,
+                eventId = rewards.event?.id,
             )
         )
         return rewards

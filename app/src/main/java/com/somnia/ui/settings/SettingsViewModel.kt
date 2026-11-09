@@ -23,6 +23,10 @@ class SettingsViewModel(private val c: AppContainer) : ViewModel() {
 
     fun updateReminders(transform: (ReminderSettings) -> ReminderSettings) = c.reminderPrefs.update(transform)
 
+    val eventOverride: StateFlow<String?> = c.gamePrefs.eventOverride
+    fun setEventOverride(id: String?) = c.gamePrefs.setEventOverride(id)
+    fun addStardust() { viewModelScope.launch { c.gameRepository.addStardust(500) } }
+
     fun redoQuestionnaire() = update { it.copy(onboardingDone = false) }
 
     /** Efface toutes les données locales (nuits, profil, progression). */

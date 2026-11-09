@@ -29,6 +29,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.platform.LocalContext
 import com.somnia.BuildConfig
+import androidx.compose.foundation.horizontalScroll
+import com.somnia.domain.game.EventCalendar
 import com.somnia.alarm.Notifications
 import com.somnia.alarm.SmartAlarmScheduler
 import com.somnia.update.UpdateUi
@@ -121,6 +123,17 @@ fun SettingsScreen(vm: SettingsViewModel, updates: UpdateViewModel, onBack: () -
                 SmartAlarmScheduler(context).schedule(System.currentTimeMillis() + 10_000L)
                 devMessage = "Le réveil va sonner dans 10 secondes. Vous pouvez verrouiller l'écran."
             }, modifier = Modifier.fillMaxWidth()) { Text("Tester le réveil dans 10 s") }
+            SectionLabel("Événement forcé (test)")
+            val forced by vm.eventOverride.collectAsStateWithLifecycle()
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(forced == null, { vm.setEventOverride(null) }, label = { Text("Calendrier") })
+                EventCalendar.all.forEach { e ->
+                    FilterChip(forced == e.id, { vm.setEventOverride(e.id) }, label = { Text("${e.symbol} ${e.name}") })
+                }
+            }
+            OutlinedButton(onClick = { vm.addStardust(); devMessage = "+500 ✦ ajoutés" }, modifier = Modifier.fillMaxWidth()) {
+                Text("Ajouter 500 poussières d'étoiles")
+            }
             OutlinedButton(onClick = { updates.check(manual = true) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Vérifier les mises à jour")
             }
