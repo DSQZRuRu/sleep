@@ -9,6 +9,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write  # publication des releases lues par la mise à jour intégrée
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -38,6 +41,22 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      # Chaque build de la branche par défaut devient une release « build-<n> » :
+      # l'app compare ce numéro à son versionCode pour proposer la mise à jour.
+      - name: Publish release
+        if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN: ${{ github.run_number }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk "somnia-$RUN.apk"
+          git log -1 --pretty=%B | grep -v -e '^Co-Authored-By' -e '^Claude-Session' > notes.md
+          gh release create "build-$RUN" "somnia-$RUN.apk" \
+            --target "$GITHUB_SHA" --title "Somnia build $RUN" --notes-file notes.md --latest
+          # Ne garde que les 10 dernières releases.
+          gh release list --limit 100 --json tagName --jq '.[10:][].tagName' \
+            | xargs -r -n1 gh release delete --cleanup-tag --yes
 
       - name: Upload test reports
         if: failure()

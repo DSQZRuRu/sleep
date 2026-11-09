@@ -50,6 +50,8 @@ import com.somnia.ui.settings.SettingsViewModel
 import com.somnia.ui.theme.SomniaColors
 import com.somnia.ui.tips.TipsScreen
 import com.somnia.ui.tracking.TrackingScreen
+import com.somnia.update.UpdateBanner
+import com.somnia.update.UpdateViewModel
 
 private enum class Tab(val route: String, val label: String, val icon: ImageVector?) {
     NIGHT("night", "Nuit", null),
@@ -92,9 +94,12 @@ private fun MainNavigation(container: AppContainer) {
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val showBar = Tab.entries.any { it.route == route }
+    // Partagé par le bandeau et les réglages (portée de l'activité).
+    val updates = containerViewModel { UpdateViewModel(container.appContext) }
 
     Scaffold(
         containerColor = SomniaColors.Night,
+        topBar = { UpdateBanner(updates) },
         bottomBar = {
             if (showBar) NavigationBar(containerColor = SomniaColors.Surface) {
                 Tab.entries.forEach { tab ->
@@ -132,7 +137,7 @@ private fun MainNavigation(container: AppContainer) {
             composable(Tab.JOURNAL.route) { JournalScreen(containerViewModel { JournalViewModel(container) }) }
             composable(Tab.TIPS.route) { TipsScreen(container.profileRepository.profile) }
             composable("settings") {
-                SettingsScreen(containerViewModel { SettingsViewModel(container) }, onBack = { nav.popBackStack() })
+                SettingsScreen(containerViewModel { SettingsViewModel(container) }, updates, onBack = { nav.popBackStack() })
             }
             composable("night/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { entry ->
                 val id = entry.arguments?.getLong("id") ?: 0L

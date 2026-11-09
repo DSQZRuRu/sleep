@@ -24,10 +24,14 @@ object Notifications {
     const val CHANNEL_TRACKING = "tracking"
     const val CHANNEL_ALARM = "alarm_v1"
     const val CHANNEL_INFO = "info"
+    const val CHANNEL_REMINDER = "reminder"
+    const val CHANNEL_REMINDER_LOUD = "reminder_loud"
 
     const val ID_TRACKING = 1
     const val ID_ALARM = 2
     const val ID_NIGHT_READY = 3
+    const val ID_REMINDER = 4
+    const val ID_TEST = 5
 
     fun createChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -55,7 +59,58 @@ object Notifications {
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL_INFO, "Récompenses du matin", NotificationManager.IMPORTANCE_DEFAULT)
         )
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_REMINDER, "Rappels du coucher", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Rappel pour lancer le suivi de la nuit (respecte le mode vibreur)"
+                enableVibration(true)
+            }
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_REMINDER_LOUD, "Rappels du coucher (même en vibreur)", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Rappel joué sur le volume des alarmes : il sonne même en mode vibreur"
+                setSound(
+                    RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+                    AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()
+                )
+                enableVibration(true)
+            }
+        )
     }
+
+    /**
+     * Rappel de lancer le suivi. [smart] : déclenché parce que l'écran s'est éteint
+     * vers l'heure du coucher sans suivi en cours.
+     */
+    fun bedtimeReminder(context: Context, smart: Boolean, loud: Boolean): Notification {
+        val start = PendingIntent.getForegroundService(
+            context, 40, SleepTrackingService.startWithDefaultAlarmIntent(context),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        return NotificationCompat.Builder(context, if (loud) CHANNEL_REMINDER_LOUD else CHANNEL_REMINDER)
+            .setSmallIcon(R.drawable.ic_moon)
+            .setContentTitle(if (smart) "Vous allez dormir ? 🌙" else "C'est l'heure de se coucher 🌙")
+            .setContentText(
+                if (smart) "L'écran est éteint mais le suivi n'est pas lancé. Brumi vous attend !"
+                else "Pensez à lancer le suivi de votre nuit dans Somnia."
+            )
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setAutoCancel(true)
+            .setContentIntent(openAppIntent(context))
+            .addAction(0, "Lancer le suivi", start)
+            .build()
+    }
+
+    fun test(context: Context): Notification =
+        NotificationCompat.Builder(context, CHANNEL_REMINDER)
+            .setSmallIcon(R.drawable.ic_moon)
+            .setContentTitle("Notification de test ✓")
+            .setContentText("Les notifications de Somnia fonctionnent.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(openAppIntent(context))
+            .build()
 
     private fun openAppIntent(context: Context): PendingIntent = PendingIntent.getActivity(
         context, 10,
@@ -130,11 +185,13 @@ object Notifications {
             NotificationManagerCompat.from(context).areNotificationsEnabled()
 
     @Suppress("MissingPermission")
-    fun post(context: Context, id: Int, notification: Notification) {
-        if (!canPost(context)) return
-        try {
+    fun post(context: Context, id: Int, notification: Notification): Boolean {
+        if (!canPost(context)) return false
+        return try {
             NotificationManagerCompat.from(context).notify(id, notification)
+            true
         } catch (_: SecurityException) {
+            false
         }
     }
 

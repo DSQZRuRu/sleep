@@ -26,6 +26,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.platform.LocalContext
+import com.somnia.BuildConfig
+import com.somnia.alarm.Notifications
+import com.somnia.alarm.SmartAlarmScheduler
+import com.somnia.update.UpdateUi
+import com.somnia.update.UpdateViewModel
 import com.somnia.ui.components.SectionLabel
 import com.somnia.ui.components.SomniaCard
 import com.somnia.ui.components.TimeStepper
@@ -34,8 +41,12 @@ import com.somnia.ui.permissions.PermissionsPanel
 import com.somnia.ui.theme.SomniaColors
 
 @Composable
-fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
+fun SettingsScreen(vm: SettingsViewModel, updates: UpdateViewModel, onBack: () -> Unit) {
     val p by vm.profile.collectAsStateWithLifecycle()
+    val r by vm.reminders.collectAsStateWithLifecycle()
+    val update by updates.ui.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var devMessage by remember { mutableStateOf<String?>(null) }
     var confirmErase by remember { mutableStateOf(false) }
 
     Column(
@@ -73,12 +84,60 @@ fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
             OutlinedButton(onClick = vm::redoQuestionnaire) { Text("Refaire le questionnaire") }
         }
 
+        SomniaCard {
+            SectionLabel("Rappels du soir")
+            ToggleRow("Rappel à l'heure du coucher", r.bedtimeEnabled) { v -> vm.updateReminders { it.copy(bedtimeEnabled = v) } }
+            if (r.bedtimeEnabled) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(0 to "À l'heure", 15 to "15 min avant", 30 to "30 min avant").forEach { (m, label) ->
+                    FilterChip(r.offsetMin == m, { vm.updateReminders { it.copy(offsetMin = m) } }, label = { Text(label) })
+                }
+            }
+            ToggleRow("Rappel si j'éteins l'écran sans lancer le suivi", r.smartEnabled) { v -> vm.updateReminders { it.copy(smartEnabled = v) } }
+            if (r.smartEnabled) Text(
+                "De 30 min avant l'heure de coucher jusqu'à 2 h après : si l'écran reste éteint 2 minutes sans suivi en cours, " +
+                    "Somnia vous envoie un rappel (une fois par nuit). Plus précis avec l'accès aux données d'utilisation.",
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+            )
+            ToggleRow("Sonner même en mode vibreur", r.loud) { v -> vm.updateReminders { it.copy(loud = v) } }
+            Text("Le rappel utilise alors le volume des alarmes au lieu de celui des notifications.",
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+        }
+
         SectionLabel("Autorisations")
         PermissionsPanel(micWanted = p.micEnabled)
 
         SomniaCard {
+            SectionLabel("Développeur")
+            Text("Version ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+            OutlinedButton(onClick = {
+                devMessage = if (Notifications.post(context, Notifications.ID_TEST, Notifications.test(context)))
+                    "Notification envoyée ✓" else "Bloquée : autorisez les notifications ci-dessus."
+            }, modifier = Modifier.fillMaxWidth()) { Text("Envoyer une notification de test") }
+            OutlinedButton(onClick = {
+                devMessage = if (Notifications.post(context, Notifications.ID_REMINDER, Notifications.bedtimeReminder(context, smart = true, loud = r.loud)))
+                    "Rappel envoyé ✓" else "Bloquée : autorisez les notifications ci-dessus."
+            }, modifier = Modifier.fillMaxWidth()) { Text("Tester le rappel du coucher") }
+            OutlinedButton(onClick = {
+                SmartAlarmScheduler(context).schedule(System.currentTimeMillis() + 10_000L)
+                devMessage = "Le réveil va sonner dans 10 secondes. Vous pouvez verrouiller l'écran."
+            }, modifier = Modifier.fillMaxWidth()) { Text("Tester le réveil dans 10 s") }
+            OutlinedButton(onClick = { updates.check(manual = true) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Vérifier les mises à jour")
+            }
+            val updateText = when (val u = update) {
+                UpdateUi.Checking -> "Vérification…"
+                is UpdateUi.UpToDate -> if (u.manual) "Vous avez la dernière version ✓" else null
+                is UpdateUi.Available -> "Build ${u.info.versionCode} disponible : touchez le bandeau en haut."
+                is UpdateUi.Error -> if (u.manual) "Mises à jour : ${u.message}" else null
+                else -> null
+            }
+            devMessage?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = SomniaColors.Teal) }
+            updateText?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = SomniaColors.Teal) }
+        }
+
+        SomniaCard {
             SectionLabel("Confidentialité")
-            Text("Toutes vos données sont stockées uniquement sur ce téléphone (base locale). Somnia n'a pas d'accès Internet et n'utilise aucun compte.",
+            Text("Toutes vos données sont stockées uniquement sur ce téléphone (base locale), sans compte. Internet ne sert qu'à vérifier et télécharger les mises à jour depuis GitHub : aucune donnée n'est envoyée.",
                 style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
             TextButton(onClick = { confirmErase = true }) { Text("Effacer toutes mes données", color = SomniaColors.Awake) }
         }

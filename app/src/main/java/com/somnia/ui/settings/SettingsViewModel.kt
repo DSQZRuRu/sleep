@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.somnia.AppContainer
 import com.somnia.data.db.ProfileEntity
+import com.somnia.reminders.ReminderSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +18,10 @@ class SettingsViewModel(private val c: AppContainer) : ViewModel() {
     fun update(transform: (ProfileEntity) -> ProfileEntity) {
         viewModelScope.launch { c.profileRepository.update(transform) }
     }
+
+    val reminders: StateFlow<ReminderSettings> = c.reminderPrefs.settings
+
+    fun updateReminders(transform: (ReminderSettings) -> ReminderSettings) = c.reminderPrefs.update(transform)
 
     fun redoQuestionnaire() = update { it.copy(onboardingDone = false) }
 

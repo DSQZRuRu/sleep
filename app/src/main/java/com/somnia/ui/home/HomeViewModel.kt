@@ -26,7 +26,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.ZonedDateTime
 
 data class HomeUi(
     val profile: ProfileEntity = ProfileEntity(),
@@ -73,14 +72,8 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
     }
 
     /** Prochaine occurrence de l'heure de lever cible. */
-    fun nextAlarmAt(): Long? {
-        if (!ui.value.alarmTonight) return null
-        val wake = ui.value.profile.targetWakeMin
-        val now = ZonedDateTime.now(Clock.zone())
-        var target = now.with(LocalTime.of(wake / 60, wake % 60)).withSecond(0).withNano(0)
-        if (!target.isAfter(now.plusMinutes(10))) target = target.plusDays(1)
-        return target.toInstant().toEpochMilli()
-    }
+    fun nextAlarmAt(): Long? =
+        if (ui.value.alarmTonight) com.somnia.data.repository.NightPlanner.nextWakeAt(ui.value.profile) else null
 
     /** Détection de secours : propose une estimation si la nuit dernière n'a pas été suivie. */
     fun refreshUsageEstimate() { viewModelScope.launch {

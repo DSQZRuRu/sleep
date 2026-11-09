@@ -1,0 +1,57 @@
+package com.somnia.reminders
+
+import android.content.Context
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+data class ReminderSettings(
+    /** Notification programmée à l'heure du coucher (moins [offsetMin]). */
+    val bedtimeEnabled: Boolean = false,
+    val offsetMin: Int = 15,
+    /** Rappel si l'écran s'éteint vers l'heure du coucher sans suivi lancé. */
+    val smartEnabled: Boolean = false,
+    /** Joue les rappels sur le volume des alarmes (sonne même en mode vibreur). */
+    val loud: Boolean = false,
+)
+
+/** Réglages des rappels et état de la surveillance, en SharedPreferences (lisibles depuis les receivers). */
+class ReminderPrefs(context: Context) {
+    private val sp = context.getSharedPreferences("reminders", Context.MODE_PRIVATE)
+
+    private val _settings = MutableStateFlow(read())
+    val settings: StateFlow<ReminderSettings> = _settings.asStateFlow()
+
+    private fun read() = ReminderSettings(
+        bedtimeEnabled = sp.getBoolean("bedtime", false),
+        offsetMin = sp.getInt("offset", 15),
+        smartEnabled = sp.getBoolean("smart", false),
+        loud = sp.getBoolean("loud", false),
+    )
+
+    fun update(transform: (ReminderSettings) -> ReminderSettings) {
+        val s = transform(_settings.value)
+        sp.edit()
+            .putBoolean("bedtime", s.bedtimeEnabled)
+            .putInt("offset", s.offsetMin)
+            .putBoolean("smart", s.smartEnabled)
+            .putBoolean("loud", s.loud)
+            .apply()
+        _settings.value = s
+    }
+
+    /** Fin de la surveillance de l'écran pour ce soir (0 = inactive). */
+    var watchUntil: Long
+        get() = sp.getLong("watch_until", 0L)
+        set(v) = sp.edit().putLong("watch_until", v).apply()
+
+    /** L'écran était éteint lors de la vérification précédente (repli sans accès aux données d'utilisation). */
+    var lastPollScreenOff: Boolean
+        get() = sp.getBoolean("last_poll_off", false)
+        set(v) = sp.edit().putBoolean("last_poll_off", v).apply()
+
+    /** Nuit (epochDay) pour laquelle le rappel intelligent a déjà été envoyé : un seul par nuit. */
+    var lastSmartNight: Long
+        get() = sp.getLong("last_smart_night", -1L)
+        set(v) = sp.edit().putLong("last_smart_night", v).apply()
+}

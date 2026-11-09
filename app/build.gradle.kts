@@ -13,8 +13,12 @@ android {
         applicationId = "com.somnia"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0"
+        // En CI, le numéro de build GitHub Actions sert de versionCode : il ne fait que croître,
+        // ce qui permet à l'app de détecter et d'installer les nouvelles versions.
+        val ciBuild = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        versionCode = ciBuild
+        versionName = "0.2.$ciBuild"
+        buildConfigField("String", "GITHUB_REPO", "\"DSQZRuRu/sleep\"")
     }
 
     // Clé de debug fixe, versionnée : chaque APK de CI a la même signature,
@@ -47,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

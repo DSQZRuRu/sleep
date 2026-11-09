@@ -18,6 +18,7 @@ import com.somnia.alarm.AlarmController
 import com.somnia.alarm.Notifications
 import com.somnia.alarm.SmartAlarmScheduler
 import com.somnia.data.db.EpochEntity
+import com.somnia.data.repository.NightPlanner
 import com.somnia.data.repository.ProfileRepository
 import com.somnia.domain.sleep.EpochInput
 import com.somnia.domain.sleep.SleepStageClassifier
@@ -68,13 +69,15 @@ class SleepTrackingService : LifecycleService() {
             ACTION_STOP -> stopTracking()
             ACTION_START, null -> {
                 val requestedAlarm = intent?.getLongExtra(EXTRA_ALARM_AT, -1L)?.takeIf { it > 0 }
-                startTracking(requestedAlarm, resume = intent == null)
+                val defaultAlarm = intent?.getBooleanExtra(EXTRA_DEFAULT_ALARM, false) ?: false
+                startTracking(requestedAlarm, resume = intent == null, defaultAlarm = defaultAlarm)
             }
         }
         return START_STICKY
     }
 
-    private fun startTracking(requestedAlarm: Long?, resume: Boolean) {
+    private fun startTracking(requestedAlarmArg: Long?, resume: Boolean, defaultAlarm: Boolean = false) {
+        var requestedAlarm = requestedAlarmArg
         if (started) return
         started = true
         // Notification immédiate (exigence des services de premier plan), affinée ensuite.
@@ -82,6 +85,9 @@ class SleepTrackingService : LifecycleService() {
 
         lifecycleScope.launch {
             val profile = container.profileRepository.get()
+            // Lancement depuis un rappel : réveil à l'heure de lever du profil.
+            if (defaultAlarm && requestedAlarm == null) requestedAlarm = NightPlanner.nextWakeAt(profile)
+            Notifications.cancel(this@SleepTrackingService, Notifications.ID_REMINDER)
             val open = container.sleepRepository.openSession()
             if (resume && open == null) { stopSelf(); return@launch }
 
@@ -242,6 +248,7 @@ class SleepTrackingService : LifecycleService() {
         const val ACTION_START = "com.somnia.tracking.START"
         const val ACTION_STOP = "com.somnia.tracking.STOP"
         const val EXTRA_ALARM_AT = "alarm_at"
+        const val EXTRA_DEFAULT_ALARM = "default_alarm"
         private const val MAX_NIGHT_MS = 14 * 3_600_000L
 
         fun start(context: Context, alarmAt: Long?) {
@@ -250,6 +257,12 @@ class SleepTrackingService : LifecycleService() {
                 .putExtra(EXTRA_ALARM_AT, alarmAt ?: -1L)
             ContextCompat.startForegroundService(context, intent)
         }
+
+        /** Intent de démarrage avec le réveil par défaut du profil (utilisé par les rappels). */
+        fun startWithDefaultAlarmIntent(context: Context): Intent =
+            Intent(context, SleepTrackingService::class.java)
+                .setAction(ACTION_START)
+                .putExtra(EXTRA_DEFAULT_ALARM, true)
 
         fun stopIntent(context: Context): Intent =
             Intent(context, SleepTrackingService::class.java).setAction(ACTION_STOP)

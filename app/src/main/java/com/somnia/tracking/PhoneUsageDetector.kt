@@ -60,6 +60,32 @@ class PhoneUsageDetector(private val context: Context) {
         return if (hours in 3.0..14.0) Estimate(bestStart, bestEnd) else null
     }
 
+    /**
+     * Heure à laquelle l'écran s'est éteint pour la dernière fois, d'après les événements système
+     * (API 28+, accès aux données d'utilisation requis). Null si l'information n'est pas disponible.
+     */
+    fun screenOffSince(now: Long = System.currentTimeMillis()): Long? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P || !hasAccess()) return null
+        val from = now - 30 * 60_000L
+        val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val events = usm.queryEvents(from, now)
+        val e = UsageEvents.Event()
+        var lastOn = -1L
+        var lastOff = -1L
+        while (events.hasNextEvent()) {
+            events.getNextEvent(e)
+            when (e.eventType) {
+                UsageEvents.Event.SCREEN_INTERACTIVE -> lastOn = e.timeStamp
+                UsageEvents.Event.SCREEN_NON_INTERACTIVE -> lastOff = e.timeStamp
+            }
+        }
+        return when {
+            lastOff > lastOn -> lastOff
+            lastOn < 0 && lastOff < 0 -> from // aucun événement : écran éteint depuis au moins 30 min
+            else -> null
+        }
+    }
+
     @Suppress("DEPRECATION")
     private fun isInteraction(type: Int): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
