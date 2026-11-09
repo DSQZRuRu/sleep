@@ -75,7 +75,7 @@ fun SomniaRoot(container: AppContainer) {
     when {
         p == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         !p.onboardingDone -> {
-            val vm = containerViewModel { OnboardingViewModel(container.profileRepository) }
+            val vm = containerViewModel { OnboardingViewModel(container.profileRepository, container.backupManager, container.appContext) }
             OnboardingScreen(vm, onDone = {})
         }
         tracking.running -> TrackingScreen(tracking, CompanionStage.forCare(game.companionCare))

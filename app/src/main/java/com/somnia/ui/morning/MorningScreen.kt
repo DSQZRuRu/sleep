@@ -249,7 +249,7 @@ private fun CreatureReveal(creature: DreamCreature, isNew: Boolean, delayMs: Lon
     LaunchedEffect(Unit) { delay(delayMs); visible = 1 }
     AnimatedVisibility(visible == 1, modifier, enter = fadeIn() + scaleIn(spring(Spring.DampingRatioLowBouncy))) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CreatureView(creature.look, Modifier.size(86.dp))
+            CreatureView(creature, Modifier.size(86.dp))
             Text(creature.name, style = MaterialTheme.typography.titleSmall)
             Text(creature.rarity.label, style = MaterialTheme.typography.labelSmall, color = rarityColor(creature.rarity))
             if (isNew) Text("NOUVEAU", style = MaterialTheme.typography.labelSmall, color = SomniaColors.Gold)

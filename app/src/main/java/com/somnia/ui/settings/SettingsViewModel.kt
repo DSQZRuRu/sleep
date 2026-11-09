@@ -27,6 +27,33 @@ class SettingsViewModel(private val c: AppContainer) : ViewModel() {
     fun setEventOverride(id: String?) = c.gamePrefs.setEventOverride(id)
     fun addStardust() { viewModelScope.launch { c.gameRepository.addStardust(500) } }
 
+    private val _backupMessage = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    val backupMessage: StateFlow<String?> = _backupMessage
+    val lastBackupAt: Long get() = c.backupManager.lastBackupAt
+
+    fun backupNow() {
+        viewModelScope.launch {
+            _backupMessage.value = if (c.backupManager.autoBackup(force = true))
+                "Sauvegardé dans Téléchargements › Somnia ✓" else "Sauvegarde impossible (Android 10 minimum) : utilisez « Exporter »."
+        }
+    }
+
+    fun exportTo(uri: android.net.Uri) {
+        viewModelScope.launch {
+            _backupMessage.value = runCatching {
+                c.appContext.contentResolver.openOutputStream(uri, "wt")!!.use { c.backupManager.export(it) }
+                "Exporté ✓"
+            }.getOrElse { "Échec de l'export : ${it.message}" }
+        }
+    }
+
+    fun restoreFrom(uri: android.net.Uri) {
+        viewModelScope.launch {
+            _backupMessage.value = c.appContext.contentResolver.openInputStream(uri)?.use { c.backupManager.restore(it) }
+                ?: "Impossible d'ouvrir le fichier."
+        }
+    }
+
     fun redoQuestionnaire() = update { it.copy(onboardingDone = false) }
 
     /** Efface toutes les données locales (nuits, profil, progression). */

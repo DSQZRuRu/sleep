@@ -274,7 +274,7 @@ fun JournalScreen(vm: JournalViewModel) {
                                     .clickable { vm.equip(o.creature.id, slot); pickSlot = null }.padding(8.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                CreatureView(o.creature.look, Modifier.size(48.dp), animated = false)
+                                CreatureView(o.creature, Modifier.size(48.dp), animated = false)
                                 Spacer(Modifier.width(8.dp))
                                 Column {
                                     Text("${o.creature.name} · niv. ${o.level}", style = MaterialTheme.typography.titleSmall)
@@ -304,7 +304,7 @@ private fun BedSlot(owned: OwnedCreature?, unlocked: Boolean, lockLevel: Int, mo
     ) {
         when {
             owned != null -> {
-                CreatureView(owned.creature.look, Modifier.fillMaxWidth().aspectRatio(1f))
+                CreatureView(owned.creature, Modifier.fillMaxWidth().aspectRatio(1f))
                 Text(owned.creature.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                 Text("niv. ${owned.level} · ${owned.creature.bonus.symbol} +${owned.bonusPct} %",
                     style = MaterialTheme.typography.labelSmall, color = SomniaColors.Gold)
@@ -335,7 +335,7 @@ private fun CreatureTile(e: CreatureEntry, onClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box {
-            CreatureView(e.creature.look, Modifier.fillMaxWidth().aspectRatio(1f), animated = false, silhouette = !found)
+            CreatureView(e.creature, Modifier.fillMaxWidth().aspectRatio(1f), animated = false, silhouette = !found)
             if (e.owned?.slot != null) Text("☾", Modifier.align(Alignment.TopEnd), color = SomniaColors.Lavender)
         }
         Text(if (found) e.creature.name else "???", style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center, maxLines = 1)
@@ -360,7 +360,7 @@ private fun CreatureDialog(
     val o = entry.owned
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { CreatureView(c.look, Modifier.size(120.dp)) },
+        icon = { CreatureView(c, Modifier.size(120.dp)) },
         title = { Text(if (o != null) "${c.name} · niv. ${o.level}" else c.name) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -407,7 +407,7 @@ private fun EventCard(ui: JournalUi) {
                 style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ui.eventCreatures.filter { it.creature.eventId == active.id }.forEach {
-                    CreatureView(it.creature.look, Modifier.size(56.dp), silhouette = it.count == 0)
+                    CreatureView(it.creature, Modifier.size(56.dp), silhouette = it.count == 0)
                 }
             }
         }

@@ -19,7 +19,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -56,7 +59,7 @@ fun OnboardingScreen(vm: OnboardingViewModel, onDone: () -> Unit) {
         AnimatedContent(s.step, Modifier.weight(1f), transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "step") { step ->
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 when (step) {
-                    0 -> Welcome()
+                    0 -> Welcome(vm)
                     1 -> WakeStep(s, vm)
                     2 -> ChronoStep(s, vm)
                     3 -> ResultStep(s)
@@ -78,7 +81,10 @@ fun OnboardingScreen(vm: OnboardingViewModel, onDone: () -> Unit) {
 }
 
 @Composable
-private fun ColumnScope.Welcome() {
+private fun ColumnScope.Welcome(vm: OnboardingViewModel) {
+    val restoring by vm.restoring.collectAsStateWithLifecycle()
+    val error by vm.restoreError.collectAsStateWithLifecycle()
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::restore) }
     CompanionView(CompanionStage.EGG, CompanionMood.CALM, Modifier.fillMaxWidth().height(200.dp))
     Text("Bienvenue dans Somnia", style = MaterialTheme.typography.headlineMedium)
     Text(
@@ -91,6 +97,15 @@ private fun ColumnScope.Welcome() {
         color = SomniaColors.Muted,
     )
     Text("Quelques questions pour créer votre profil de sommeil.", style = MaterialTheme.typography.titleMedium)
+    SomniaCard {
+        SectionLabel("Vous avez déjà utilisé Somnia ?")
+        Text("Restaurez votre sauvegarde : elle se trouve dans Téléchargements › Somnia (somnia-sauvegarde-….zip).",
+            style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+        OutlinedButton(onClick = { picker.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }, enabled = !restoring) {
+            Text(if (restoring) "Restauration…" else "Restaurer une sauvegarde")
+        }
+        error?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = SomniaColors.Awake) }
+    }
 }
 
 @Composable

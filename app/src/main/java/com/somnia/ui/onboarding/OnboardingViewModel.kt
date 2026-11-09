@@ -44,7 +44,27 @@ data class OnboardingState(
     fun options(): List<BedtimeCalculator.Option> = ProfileRepository.options(toProfile(ProfileEntity()))
 }
 
-class OnboardingViewModel(private val profiles: ProfileRepository) : ViewModel() {
+class OnboardingViewModel(
+    private val profiles: ProfileRepository,
+    private val backup: com.somnia.data.backup.BackupManager,
+    private val appContext: android.content.Context,
+) : ViewModel() {
+    private val _restoreError = MutableStateFlow<String?>(null)
+    val restoreError: StateFlow<String?> = _restoreError.asStateFlow()
+    private val _restoring = MutableStateFlow(false)
+    val restoring: StateFlow<Boolean> = _restoring.asStateFlow()
+
+    /** Restaure une sauvegarde choisie par l'utilisateur ; l'app redémarre si tout va bien. */
+    fun restore(uri: android.net.Uri) {
+        _restoring.value = true
+        viewModelScope.launch {
+            val error = appContext.contentResolver.openInputStream(uri)?.use { backup.restore(it) }
+                ?: "Impossible d'ouvrir le fichier."
+            _restoreError.value = error
+            _restoring.value = false
+        }
+    }
+
     private val _state = MutableStateFlow(OnboardingState())
     val state: StateFlow<OnboardingState> = _state.asStateFlow()
 

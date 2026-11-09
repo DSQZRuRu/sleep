@@ -2,6 +2,7 @@ package com.somnia
 
 import android.content.Context
 import com.somnia.alarm.SmartAlarmScheduler
+import com.somnia.data.backup.BackupManager
 import com.somnia.data.db.SomniaDatabase
 import com.somnia.data.repository.GamePrefs
 import com.somnia.data.repository.GameRepository
@@ -24,5 +25,6 @@ class AppContainer(context: Context) {
     val alarmScheduler = SmartAlarmScheduler(appContext)
     val usageDetector = PhoneUsageDetector(appContext)
     val reminderPrefs = ReminderPrefs(appContext)
+    val backupManager = BackupManager(appContext, database)
     val reminderScheduler = ReminderScheduler(appContext, reminderPrefs, profileRepository)
 }

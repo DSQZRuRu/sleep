@@ -43,9 +43,9 @@ fun CreatureView(look: CreatureLook, modifier: Modifier = Modifier, animated: Bo
     }
 }
 
-/** Brumi, le compagnon, dont l'apparence dépend du stade d'évolution et de l'humeur. */
+/** Ancien rendu procédural de Brumi (conservé comme référence). */
 @Composable
-fun CompanionView(stage: CompanionStage, mood: CompanionMood, modifier: Modifier = Modifier) {
+fun ProceduralCompanionView(stage: CompanionStage, mood: CompanionMood, modifier: Modifier = Modifier) {
     val t by rememberInfiniteTransition(label = "brumi").animateFloat(
         -1f, 1f, infiniteRepeatable(tween(2600), RepeatMode.Reverse), label = "bob",
     )
@@ -199,6 +199,12 @@ private fun DrawScope.drawStars(t: Float) {
         val p = Offset(c.x + cos(a) * s * 0.46f, c.y + sin(a) * s * 0.42f)
         drawCircle(Color(0xFFFFE6A8).copy(alpha = 0.5f + 0.3f * ((i % 2) * t)), s * 0.012f, p)
     }
+}
+
+/** Petits « z » qui flottent au-dessus d'une créature endormie. */
+@Composable
+fun ZzzOverlay(modifier: Modifier, t: Float) {
+    Canvas(modifier) { drawZzz(t * 2f - 1f) }
 }
 
 private fun DrawScope.drawZzz(t: Float) {

@@ -43,6 +43,22 @@ Les APK sont signés avec une clé de debug fixe (`app/debug.keystore`), donc ch
 
 Garde-fous : aucune récompense ne demande de garder l'écran allumé. Rester au lit sans dormir ne rapporte rien : sous 3 h de sommeil réel, il n'y a ni créature, ni bonus d'Éclat, ni poussière. L'XP de durée s'arrête à 9 h, et les bonus récompensent la régularité et l'efficacité.
 
+### Sauvegarde
+
+Android efface les données d'une app quand on la désinstalle. Somnia écrit donc une archive (base Room et réglages) dans **Téléchargements/Somnia**, une fois par jour et après chaque nuit, en gardant les 3 plus récentes. Ce dossier survit à la désinstallation : au premier lancement, l'écran d'accueil propose « Restaurer une sauvegarde ». Les Réglages permettent aussi de sauvegarder, d'exporter et de restaurer à la main.
+La sauvegarde automatique d'Android (chiffrée, sur le compte Google) est également activée.
+Les mises à jour s'installent par-dessus l'app sans rien effacer : il n'est pas nécessaire de désinstaller.
+
+### Illustrations
+
+Brumi (5 stades, avec une variante yeux fermés) et une partie des créatures sont des illustrations vectorielles originales. La source est en SVG dans `art/svg/`, écrite par `tools/art/build_art.py`, puis convertie en VectorDrawable Android (`res/drawable/art_*.xml`) par `tools/art/svg2vd.py`. `art/preview.html` affiche la planche complète.
+
+```bash
+python3 tools/art/build_art.py   # régénère SVG, VectorDrawable et aperçu
+```
+
+Les créatures qui n'ont pas encore d'illustration gardent leur rendu procédural en Canvas.
+
 ## Architecture
 
 MVVM + Repository, injection de dépendances manuelle (`AppContainer`), coroutines/Flow, Room.

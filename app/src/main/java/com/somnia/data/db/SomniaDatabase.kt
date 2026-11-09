@@ -19,7 +19,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         NightRewardEntity::class,
         CreatureProgressEntity::class,
     ],
-    version = 2,
+    version = SomniaDatabase.VERSION,
     exportSchema = true,
 )
 abstract class SomniaDatabase : RoomDatabase() {
@@ -28,6 +28,9 @@ abstract class SomniaDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao
 
     companion object {
+        const val VERSION = 2
+        const val NAME = "somnia.db"
+
         /** v2 : Éclat de rêve, poussière d'étoiles, niveaux et lit des créatures, événements. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -50,7 +53,7 @@ abstract class SomniaDatabase : RoomDatabase() {
         }
 
         fun create(context: Context): SomniaDatabase =
-            Room.databaseBuilder(context, SomniaDatabase::class.java, "somnia.db")
+            Room.databaseBuilder(context, SomniaDatabase::class.java, NAME)
                 .addMigrations(MIGRATION_1_2)
                 .build()
     }

@@ -187,7 +187,10 @@ class SleepTrackingService : LifecycleService() {
                 val processed = id?.let { container.nightProcessor.finalizeSensorSession(it, System.currentTimeMillis()) }
                 releaseWakeLock()
                 TrackingState.set(TrackingStatus())
-                if (processed != null) Notifications.post(this@SleepTrackingService, Notifications.ID_NIGHT_READY, Notifications.nightReady(this@SleepTrackingService))
+                if (processed != null) {
+                    Notifications.post(this@SleepTrackingService, Notifications.ID_NIGHT_READY, Notifications.nightReady(this@SleepTrackingService))
+                    container.backupManager.autoBackup(force = true)
+                }
             }
             ServiceCompat.stopForeground(this@SleepTrackingService, ServiceCompat.STOP_FOREGROUND_REMOVE)
             stopSelf()

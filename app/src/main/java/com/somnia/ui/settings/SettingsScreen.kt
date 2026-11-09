@@ -29,6 +29,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.platform.LocalContext
 import com.somnia.BuildConfig
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import com.somnia.domain.game.EventCalendar
 import com.somnia.alarm.Notifications
@@ -149,8 +151,43 @@ fun SettingsScreen(vm: SettingsViewModel, updates: UpdateViewModel, onBack: () -
         }
 
         SomniaCard {
+            SectionLabel("Sauvegarde")
+            val backupMsg by vm.backupMessage.collectAsStateWithLifecycle()
+            val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+                uri?.let(vm::exportTo)
+            }
+            var pendingRestore by remember { mutableStateOf<android.net.Uri?>(null) }
+            val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> pendingRestore = uri }
+            Text(
+                "Une copie de vos données est enregistrée chaque jour et après chaque nuit dans Téléchargements › Somnia. " +
+                    "Ce dossier est conservé si vous désinstallez l'app : au prochain lancement, choisissez « Restaurer une sauvegarde ».",
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+            )
+            val last = vm.lastBackupAt
+            if (last > 0) Text(
+                "Dernière sauvegarde : " + java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.SHORT, java.text.DateFormat.SHORT).format(java.util.Date(last)),
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+            )
+            OutlinedButton(onClick = vm::backupNow, modifier = Modifier.fillMaxWidth()) { Text("Sauvegarder maintenant") }
+            OutlinedButton(onClick = { exporter.launch("somnia-sauvegarde.zip") }, modifier = Modifier.fillMaxWidth()) { Text("Exporter vers…") }
+            OutlinedButton(onClick = { importer.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Restaurer depuis un fichier…")
+            }
+            backupMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = SomniaColors.Teal) }
+            pendingRestore?.let { uri ->
+                AlertDialog(
+                    onDismissRequest = { pendingRestore = null },
+                    title = { Text("Restaurer cette sauvegarde ?") },
+                    text = { Text("Vos données actuelles seront remplacées par celles de la sauvegarde, puis l'app redémarrera.") },
+                    confirmButton = { TextButton(onClick = { pendingRestore = null; vm.restoreFrom(uri) }) { Text("Restaurer") } },
+                    dismissButton = { TextButton(onClick = { pendingRestore = null }) { Text("Annuler") } },
+                )
+            }
+        }
+
+        SomniaCard {
             SectionLabel("Confidentialité")
-            Text("Toutes vos données sont stockées uniquement sur ce téléphone (base locale), sans compte. Internet ne sert qu'à vérifier et télécharger les mises à jour depuis GitHub : aucune donnée n'est envoyée.",
+            Text("Toutes vos données sont stockées sur ce téléphone (base locale), sans compte Somnia. La sauvegarde automatique d'Android peut aussi les copier, chiffrées, sur votre compte Google. Internet ne sert qu'à vérifier et télécharger les mises à jour depuis GitHub : aucune donnée n'est envoyée.",
                 style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
             TextButton(onClick = { confirmErase = true }) { Text("Effacer toutes mes données", color = SomniaColors.Awake) }
         }

@@ -113,7 +113,7 @@ fun HomeScreen(vm: HomeViewModel, onSettings: () -> Unit, onOpenTip: () -> Unit,
                 Text("✦ ${ui.game.stardust}", color = SomniaColors.Gold, style = MaterialTheme.typography.titleSmall)
             }
             if (bed.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                bed.forEach { CreatureView(it.creature.look, Modifier.size(56.dp)) }
+                bed.forEach { CreatureView(it.creature, Modifier.size(56.dp)) }
             }
         }
 

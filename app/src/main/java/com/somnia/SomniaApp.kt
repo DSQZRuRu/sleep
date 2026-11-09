@@ -19,6 +19,10 @@ class SomniaApp : Application() {
         super.onCreate()
         container = AppContainer(this)
         Notifications.createChannels(this)
+        // Sauvegarde quotidienne dans Téléchargements/Somnia (survit à une désinstallation).
+        appScope.launch {
+            if (container.profileRepository.get().onboardingDone) container.backupManager.autoBackup()
+        }
         // Reprogramme les rappels dès que le profil (heure de coucher) ou leurs réglages changent.
         appScope.launch {
             combine(container.profileRepository.profile, container.reminderPrefs.settings) { p, s -> p to s }
