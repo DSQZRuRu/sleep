@@ -21,10 +21,10 @@ class AppContainer(context: Context) {
     val profileRepository = ProfileRepository(database.profileDao())
     val gamePrefs = GamePrefs(appContext)
     val gameRepository = GameRepository(database)
-    val nightProcessor = NightProcessor(database) { gamePrefs.activeEvent() }
     val alarmScheduler = SmartAlarmScheduler(appContext)
     val usageDetector = PhoneUsageDetector(appContext)
     val reminderPrefs = ReminderPrefs(appContext)
     val backupManager = BackupManager(appContext, database)
+    val nightProcessor = NightProcessor(database, { gamePrefs.activeEvent() }, { reminderPrefs.morningLightDay })
     val reminderScheduler = ReminderScheduler(appContext, reminderPrefs, profileRepository)
 }

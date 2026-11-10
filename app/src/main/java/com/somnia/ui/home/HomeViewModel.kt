@@ -40,6 +40,7 @@ data class HomeUi(
     val tip: SleepTip = SleepTipsCatalog.all.first(),
     val alarmTonight: Boolean = true,
     val usageEstimate: PhoneUsageDetector.Estimate? = null,
+    val debt: com.somnia.domain.sleep.SleepDebt.Result? = null,
 )
 
 class HomeViewModel(private val c: AppContainer) : ViewModel() {
@@ -63,6 +64,12 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
             tip = SleepTipsCatalog.tipOfTheDay(Clock.today()),
             alarmTonight = alarm,
             usageEstimate = estimate,
+            debt = history.take(7).takeIf { it.size >= 3 }?.let { nights ->
+                com.somnia.domain.sleep.SleepDebt.compute(
+                    nights.map { it.totalSleepMin },
+                    (profile.preferredCycles * profile.cycleMin).coerceIn(420, 540),
+                )
+            },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeUi())
 
@@ -76,6 +83,17 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
 
     val room: StateFlow<com.somnia.data.repository.RoomState?> = c.gameRepository.room
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private val _lightDone = MutableStateFlow(c.reminderPrefs.morningLightDay == Clock.today())
+    val morningLightDone: StateFlow<Boolean> = _lightDone
+
+    /** Défi lumière du matin : +15 ✦ une fois par jour. */
+    fun confirmMorningLight() {
+        if (_lightDone.value) return
+        c.reminderPrefs.morningLightDay = Clock.today()
+        _lightDone.value = true
+        viewModelScope.launch { c.gameRepository.addStardust(15) }
+    }
 
     fun setAlarmTonight(v: Boolean) { alarmTonight.value = v }
 

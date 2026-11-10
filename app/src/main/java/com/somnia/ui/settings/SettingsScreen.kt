@@ -76,6 +76,14 @@ fun SettingsScreen(vm: SettingsViewModel, updates: UpdateViewModel, onBack: () -
         }
 
         SomniaCard {
+            SectionLabel("Sonnerie du réveil")
+            ToggleRow("Réveil doux Somnia (carillon progressif)", r.gentleAlarm) { v -> vm.updateReminders { it.copy(gentleAlarm = v) } }
+            Text("Des notes de cloche qui montent doucement en volume sur une minute, et une vibration de plus en plus présente. " +
+                "Sinon, la sonnerie d'alarme du téléphone est utilisée.",
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+        }
+
+        SomniaCard {
             SectionLabel("Capteurs")
             ToggleRow("Analyser le niveau sonore", p.micEnabled) { v -> vm.update { it.copy(micEnabled = v) } }
             Text("Seul un niveau sonore est calculé en local, chaque demi-seconde. Aucun audio n'est enregistré, stocké ni envoyé.",
@@ -107,6 +115,32 @@ fun SettingsScreen(vm: SettingsViewModel, updates: UpdateViewModel, onBack: () -
             ToggleRow("Sonner même en mode vibreur", r.loud) { v -> vm.updateReminders { it.copy(loud = v) } }
             Text("Le rappel utilise alors le volume des alarmes au lieu de celui des notifications.",
                 style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+        }
+
+        SomniaCard {
+            SectionLabel("Santé et export")
+            val hcLauncher = rememberLauncherForActivityResult(
+                androidx.health.connect.client.PermissionController.createRequestPermissionResultContract(),
+            ) { granted -> vm.onHealthPermissionResult(granted) }
+            if (vm.healthConnectAvailable) {
+                ToggleRow("Envoyer mes nuits vers Health Connect", r.healthConnect) { v ->
+                    if (v) hcLauncher.launch(com.somnia.data.health.HealthConnectSync.PERMISSIONS)
+                    else vm.updateReminders { it.copy(healthConnect = false) }
+                }
+                Text("Écriture seule des nuits et de leurs phases estimées, pour les retrouver dans Samsung Health, Google Fit, etc.",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+            } else {
+                Text("Health Connect n'est pas disponible sur ce téléphone (installez-le depuis le Play Store pour l'utiliser).",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+            }
+            val pdfExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri -> uri?.let(vm::exportPdf) }
+            val csvExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri -> uri?.let(vm::exportCsv) }
+            Text("Pour un médecin : synthèse PDF (moyennes et tableau des nuits) ou fichier tableur complet.",
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { pdfExporter.launch("somnia-sommeil.pdf") }, modifier = Modifier.weight(1f)) { Text("PDF") }
+                OutlinedButton(onClick = { csvExporter.launch("somnia-sommeil.csv") }, modifier = Modifier.weight(1f)) { Text("Tableur") }
+            }
         }
 
         SectionLabel("Autorisations")

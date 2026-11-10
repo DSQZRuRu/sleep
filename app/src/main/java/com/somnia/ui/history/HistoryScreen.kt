@@ -100,6 +100,21 @@ fun HistoryScreen(vm: HistoryViewModel, onOpen: (Long) -> Unit, onOpenRecap: (In
                 }
             }
         }
+        ui.jetlag?.let { j ->
+            item {
+                SomniaCard(accent = if (j.minutes >= 60) SomniaColors.Awake else SomniaColors.Teal) {
+                    SectionLabel("Jet lag social · 14 derniers jours")
+                    Text(if (j.minutes < 5) "Aucun décalage" else TimeMath.formatDuration(j.minutes),
+                        style = MaterialTheme.typography.headlineMedium, color = if (j.minutes >= 60) SomniaColors.Awake else SomniaColors.Teal)
+                    Text(
+                        "Milieu du sommeil : ${TimeMath.format(j.weekdayMid)} en semaine, ${TimeMath.format(j.weekendMid)} le week-end. " +
+                            if (j.minutes >= 60) "Un écart d'une heure ou plus agit comme un petit décalage horaire chaque lundi : essayez de garder le lever du week-end proche de celui de la semaine."
+                            else "Vos horaires restent stables entre semaine et week-end : excellent pour l'horloge interne.",
+                        style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+                    )
+                }
+            }
+        }
         if (ui.sessions.isEmpty()) {
             item { Text("Aucune nuit enregistrée pour l'instant. Lancez votre première nuit ce soir !", color = SomniaColors.Muted) }
         }

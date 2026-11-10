@@ -213,6 +213,9 @@ class SleepTrackingService : LifecycleService() {
                     } else {
                         Notifications.post(this@SleepTrackingService, Notifications.ID_NIGHT_READY, Notifications.nightReady(this@SleepTrackingService))
                         container.backupManager.autoBackup(force = true)
+                        if (session != null && container.reminderPrefs.settings.value.healthConnect) {
+                            com.somnia.data.health.HealthConnectSync.write(this@SleepTrackingService, session, container.sleepRepository.epochs(processed))
+                        }
                     }
                 }
             }

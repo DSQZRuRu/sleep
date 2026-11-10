@@ -36,7 +36,12 @@ import kotlin.math.roundToInt
  * Cas d'usage central : clôture d'une nuit.
  * Analyse des phases → score → ajustement du profil → récompenses, dans une seule transaction.
  */
-class NightProcessor(private val db: SomniaDatabase, private val activeEvent: () -> SeasonalEvent? = { null }) {
+class NightProcessor(
+    private val db: SomniaDatabase,
+    private val activeEvent: () -> SeasonalEvent? = { null },
+    /** Jour où l'utilisateur a confirmé la lumière du matin (−1 si jamais). */
+    private val morningLightDay: () -> Long = { -1L },
+) {
 
     private val sleepDao = db.sleepDao()
     private val gameDao = db.gameDao()
@@ -75,6 +80,11 @@ class NightProcessor(private val db: SomniaDatabase, private val activeEvent: ()
             score = score,
             snoreMinutes = epochs.count { it.snoreLike },
             processed = true,
+            // Lumière du matin confirmée le jour qui précède cette nuit : ajoutée aux facteurs.
+            factors = if (morningLightDay() == Clock.nightDay(session.startTime))
+                com.somnia.domain.sleep.SleepFactor.encode(
+                    com.somnia.domain.sleep.SleepFactor.parse(session.factors) + com.somnia.domain.sleep.SleepFactor.MORNING_LIGHT
+                ) else session.factors,
         )
         if (session.isNap) {
             // Sieste : enregistrée pour mémoire, sans score de nuit, apprentissage ni récompenses.

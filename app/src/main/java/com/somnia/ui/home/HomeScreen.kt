@@ -66,6 +66,9 @@ fun HomeScreen(
     val bed by vm.bed.collectAsStateWithLifecycle()
     val event by vm.event.collectAsStateWithLifecycle()
     val room by vm.room.collectAsStateWithLifecycle()
+    val lightDone by vm.morningLightDone.collectAsStateWithLifecycle()
+    val nowMin = com.somnia.data.repository.Clock.minuteOfDay(System.currentTimeMillis())
+    val sinceWake = com.somnia.domain.sleep.TimeMath.normalize(nowMin - ui.profile.targetWakeMin)
     val context = LocalContext.current
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refreshUsageEstimate() }
 
@@ -95,6 +98,7 @@ fun HomeScreen(
             layout = room?.layout ?: com.somnia.domain.game.DecorCatalog.layout(emptyMap()),
             wakeMin = ui.profile.targetWakeMin,
             bedMin = ui.idealBed,
+            debtMin = ui.debt?.debtMin ?: 0,
             onClick = onOpenRoom,
         )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -105,6 +109,34 @@ fun HomeScreen(
                 else "Dans le lit : " + bed.joinToString(" · ") { "${it.creature.name} ${it.creature.bonus.symbol}+${it.bonusPct} %" },
                 style = MaterialTheme.typography.bodySmall, color = SomniaColors.Lavender,
             )
+        }
+
+        // Défi lumière du matin (dans les 3 h après le lever)
+        if (sinceWake in 0..180) {
+            SomniaCard(accent = SomniaColors.Gold) {
+                SectionLabel("Défi du matin · lumière du jour")
+                Text(
+                    "Sortir ou s'installer près d'une fenêtre 10 à 20 min dans l'heure qui suit le lever aide l'horloge interne : " +
+                        "on s'endort plus facilement le soir.",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+                )
+                if (lightDone) Text("☀ Défi accompli aujourd'hui : +15 ✦", color = SomniaColors.Gold, style = MaterialTheme.typography.titleSmall)
+                else GameButton("J'ai pris la lumière", onClick = vm::confirmMorningLight, leading = "☀", color = SomniaColors.Gold,
+                    height = 46.dp, modifier = Modifier.fillMaxWidth())
+            }
+        }
+
+        // Dette de sommeil
+        ui.debt?.takeIf { it.debtMin >= 60 }?.let { d ->
+            SomniaCard(accent = SomniaColors.Awake) {
+                SectionLabel("Dette de sommeil · 7 derniers jours")
+                Text(TimeMath.formatDuration(d.debtMin), style = MaterialTheme.typography.headlineMedium, color = SomniaColors.Awake)
+                if (d.suggestionMin > 0) Text(
+                    "Ce soir, couchez-vous ${d.suggestionMin} min plus tôt (vers ${TimeMath.format(ui.idealBed - d.suggestionMin)}). " +
+                        "On rattrape en douceur, sur plusieurs soirs : une grasse matinée dérègle l'horloge.",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+                )
+            }
         }
 
         // Estimation de secours

@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(private val c: AppContainer) : ViewModel() {
@@ -92,6 +93,29 @@ class SettingsViewModel(private val c: AppContainer) : ViewModel() {
         viewModelScope.launch {
             _devMessage.value = if (c.nightProcessor.simulateNight() != null) "Nuit simulée : l'écran du matin va s'ouvrir." else "Échec de la simulation."
         }
+    }
+
+    // ---------- Export pour un médecin ----------
+    fun exportCsv(uri: android.net.Uri) = export(uri) { nights, out -> com.somnia.data.export.SleepExport.csv(nights, out) }
+    fun exportPdf(uri: android.net.Uri) = export(uri) { nights, out -> com.somnia.data.export.SleepExport.pdf(nights, out) }
+
+    private fun export(uri: android.net.Uri, write: (List<com.somnia.data.db.SleepSessionEntity>, java.io.OutputStream) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _backupMessage.value = runCatching {
+                val nights = c.sleepRepository.history.first()
+                c.appContext.contentResolver.openOutputStream(uri, "wt")!!.use { write(nights, it) }
+                "Export terminé ✓ (${nights.size} nuits)"
+            }.getOrElse { "Échec de l'export : ${it.message}" }
+        }
+    }
+
+    // ---------- Health Connect ----------
+    val healthConnectAvailable: Boolean get() = com.somnia.data.health.HealthConnectSync.available(c.appContext)
+
+    fun onHealthPermissionResult(granted: Set<String>) {
+        val ok = granted.containsAll(com.somnia.data.health.HealthConnectSync.PERMISSIONS)
+        c.reminderPrefs.update { it.copy(healthConnect = ok) }
+        _backupMessage.value = if (ok) "Health Connect activé : vos prochaines nuits y seront envoyées ✓" else "Autorisation Health Connect refusée."
     }
 
     fun redoQuestionnaire() = update { it.copy(onboardingDone = false) }

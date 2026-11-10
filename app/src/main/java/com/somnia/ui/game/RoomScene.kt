@@ -16,7 +16,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.somnia.domain.game.BrumiTalk
+import com.somnia.domain.game.Season
+import com.somnia.domain.sleep.TimeMath
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -120,8 +133,21 @@ fun RoomScene(
     layout: Map<DecorSlot, DecorItem> = DecorCatalog.layout(emptyMap()),
     wakeMin: Int = 7 * 60,
     bedMin: Int = 23 * 60,
+    debtMin: Int = 0,
     onClick: (() -> Unit)? = null,
 ) {
+    val sound by com.somnia.sound.Soundscape.state.collectAsStateWithLifecycle()
+    var bubble by remember { mutableStateOf<String?>(null) }
+    var bubbleKey by remember { mutableIntStateOf(0) }
+    val jump = remember { Animatable(0f) }
+    LaunchedEffect(bubbleKey) {
+        if (bubbleKey == 0) return@LaunchedEffect
+        jump.snapTo(0f)
+        jump.animateTo(1f, tween(180))
+        jump.animateTo(0f, spring(dampingRatio = 0.35f, stiffness = 500f))
+        delay(3200)
+        bubble = null
+    }
     val shape = RoundedCornerShape(28.dp)
     // Horloge de la scène, rafraîchie chaque minute pour faire glisser le ciel.
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -152,6 +178,11 @@ fun RoomScene(
         RoomLayer(R.drawable.art_room_back_dusk, dusk)
         RoomLayer(R.drawable.art_room_back_dawn, dawn)
         RoomLayer(R.drawable.art_room_back_day, day)
+        val today = java.time.LocalDate.now()
+        WindowWeather(
+            weatherFor(Season.of(today.monthValue, today.dayOfMonth), night >= 0.5f, sound.playing == com.somnia.sound.SoundKind.RAIN),
+            Modifier.fillMaxSize(),
+        )
         RoomLayer(R.drawable.art_room_window)
         for (slot in listOf(DecorSlot.WALL, DecorSlot.CURTAINS, DecorSlot.RUG, DecorSlot.LAMP, DecorSlot.PLANT)) {
             RoomLayer(layout[slot]?.let { DecorArt.layer(it.id) })
@@ -164,7 +195,26 @@ fun RoomScene(
 
         // L'illustration pose ses personnages à ~87 % de sa hauteur : on aligne ce point sur l'oreiller.
         val brumiSize = w * 0.19f
-        CompanionView(stage, sceneMood, Modifier.size(brumiSize).offset(x = w * 0.255f - brumiSize / 2, y = h * 0.67f - brumiSize * 0.87f))
+        val brumiX = w * 0.255f - brumiSize / 2
+        val brumiY = h * 0.67f - brumiSize * 0.87f
+        Box(
+            Modifier.size(brumiSize).offset(x = brumiX, y = brumiY - brumiSize * 0.18f * jump.value)
+                .clickable(remember { MutableInteractionSource() }, indication = null) {
+                    val nowMin = Clock.minuteOfDay(System.currentTimeMillis())
+                    val toBed = TimeMath.normalize(bedMin - nowMin).takeIf { it in 1..180 }
+                    bubble = BrumiTalk.line(DayCycle.phase(nowMin, wakeMin, bedMin), mood, debtMin, toBed)
+                    bubbleKey++
+                },
+        ) { CompanionView(stage, sceneMood, Modifier.fillMaxSize()) }
+        bubble?.let { text ->
+            Box(
+                Modifier.offset(x = w * 0.04f, y = h * 0.04f).widthIn(max = w * 0.62f)
+                    .background(Color(0xF2FFFFFF), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+            ) {
+                Text(text, style = MaterialTheme.typography.bodySmall, color = SomniaColors.Night)
+            }
+        }
 
         val slotX = listOf(0.47f, 0.60f, 0.73f)
         val cSize = w * 0.14f

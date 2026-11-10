@@ -24,6 +24,7 @@ object Notifications {
     const val CHANNEL_TRACKING = "tracking"
     const val CHANNEL_ALARM = "alarm_v1"
     const val CHANNEL_INFO = "info"
+    const val CHANNEL_ALARM_SOFT = "alarm_soft"
     const val CHANNEL_REMINDER = "reminder"
     const val CHANNEL_REMINDER_LOUD = "reminder_loud"
 
@@ -53,6 +54,15 @@ object Notifications {
                 )
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 600, 400, 600, 400, 900)
+                setBypassDnd(true)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+            }
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_ALARM_SOFT, "Réveil doux", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Le carillon est joué par Somnia ; ce canal n'a pas de son propre"
+                setSound(null, null)
+                enableVibration(false)
                 setBypassDnd(true)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
             }
@@ -151,7 +161,7 @@ object Notifications {
             .build()
     }
 
-    fun alarm(context: Context): Notification {
+    fun alarm(context: Context, gentle: Boolean = false): Notification {
         val fullScreen = PendingIntent.getActivity(
             context, 20,
             Intent(context, AlarmActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION),
@@ -165,7 +175,7 @@ object Notifications {
             context, 22, Intent(context, AlarmReceiver::class.java).setAction(AlarmReceiver.ACTION_SNOOZE),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val n = NotificationCompat.Builder(context, CHANNEL_ALARM)
+        val n = NotificationCompat.Builder(context, if (gentle) CHANNEL_ALARM_SOFT else CHANNEL_ALARM)
             .setSmallIcon(R.drawable.ic_moon)
             .setContentTitle("Bonjour !")
             .setContentText("C'est le bon moment pour vous lever en douceur.")
@@ -179,7 +189,7 @@ object Notifications {
             .addAction(0, "Je me lève", dismiss)
             .addAction(0, "Encore 9 min", snooze)
             .build()
-        n.flags = n.flags or Notification.FLAG_INSISTENT
+        if (!gentle) n.flags = n.flags or Notification.FLAG_INSISTENT
         return n
     }
 

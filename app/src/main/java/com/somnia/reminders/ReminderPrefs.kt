@@ -15,6 +15,10 @@ data class ReminderSettings(
     val loud: Boolean = false,
     /** Notification du bilan, le dimanche soir. */
     val weeklyRecap: Boolean = true,
+    /** Réveil doux (carillon progressif) plutôt que la sonnerie d'alarme du téléphone. */
+    val gentleAlarm: Boolean = true,
+    /** Envoyer les nuits vers Health Connect. */
+    val healthConnect: Boolean = false,
 )
 
 /** Réglages des rappels et état de la surveillance, en SharedPreferences (lisibles depuis les receivers). */
@@ -30,6 +34,8 @@ class ReminderPrefs(context: Context) {
         smartEnabled = sp.getBoolean("smart", false),
         loud = sp.getBoolean("loud", false),
         weeklyRecap = sp.getBoolean("weekly", true),
+        gentleAlarm = sp.getBoolean("gentle", true),
+        healthConnect = sp.getBoolean("health_connect", false),
     )
 
     fun update(transform: (ReminderSettings) -> ReminderSettings) {
@@ -40,6 +46,8 @@ class ReminderPrefs(context: Context) {
             .putBoolean("smart", s.smartEnabled)
             .putBoolean("loud", s.loud)
             .putBoolean("weekly", s.weeklyRecap)
+            .putBoolean("gentle", s.gentleAlarm)
+            .putBoolean("health_connect", s.healthConnect)
             .apply()
         _settings.value = s
     }
@@ -53,6 +61,11 @@ class ReminderPrefs(context: Context) {
     var lastPollScreenOff: Boolean
         get() = sp.getBoolean("last_poll_off", false)
         set(v) = sp.edit().putBoolean("last_poll_off", v).apply()
+
+    /** Jour (epochDay) où l'utilisateur a confirmé avoir pris la lumière du matin. */
+    var morningLightDay: Long
+        get() = sp.getLong("morning_light_day", -1L)
+        set(v) = sp.edit().putLong("morning_light_day", v).apply()
 
     /** Heure du dernier rituel du soir terminé. */
     var lastRitualAt: Long

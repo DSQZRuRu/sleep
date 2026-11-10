@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.somnia.AppContainer
 import com.somnia.data.db.SleepSessionEntity
 import com.somnia.data.repository.Clock
+import com.somnia.data.repository.hasStages
 import com.somnia.data.repository.wakeTime
 import com.somnia.domain.sleep.RegularityCalculator
 import com.somnia.domain.sleep.SleepStage
@@ -27,6 +28,7 @@ data class HistoryUi(
     val avgSleep: Int = 0,
     val avgScore: Int = 0,
     val weekOffset: Int = 0,
+    val jetlag: com.somnia.domain.sleep.SocialJetlag.Result? = null,
 )
 
 class HistoryViewModel(private val c: AppContainer) : ViewModel() {
@@ -56,6 +58,14 @@ class HistoryViewModel(private val c: AppContainer) : ViewModel() {
             avgSleep = if (inWeek.isEmpty()) 0 else inWeek.sumOf { it.totalSleepMin } / inWeek.size,
             avgScore = if (inWeek.isEmpty()) 0 else inWeek.sumOf { it.score } / inWeek.size,
             weekOffset = off,
+            jetlag = com.somnia.domain.sleep.SocialJetlag.compute(
+                sessions.filter { Clock.nightDay(it.startTime) >= today - 14 && it.hasStages }.map {
+                    com.somnia.domain.sleep.SocialJetlag.Night(
+                        LocalDate.ofEpochDay(Clock.nightDay(it.startTime)).dayOfWeek.value,
+                        Clock.minuteOfDay(it.startTime), Clock.minuteOfDay(it.wakeTime),
+                    )
+                }
+            ),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUi())
 

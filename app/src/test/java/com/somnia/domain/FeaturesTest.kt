@@ -132,3 +132,23 @@ class SimulatorAndFragmentsTest {
         assertTrue(f1.isNotBlank())
     }
 }
+
+class DebtAndJetlagTest {
+    @Test
+    fun debtAccumulatesAndSuggestsGently() {
+        val r = com.somnia.domain.sleep.SleepDebt.compute(List(7) { 390 }, 450) // 1 h de moins par nuit
+        assertEquals(420, r.debtMin)
+        assertEquals(30, r.suggestionMin)
+        assertEquals(0, com.somnia.domain.sleep.SleepDebt.compute(List(7) { 460 }, 450).debtMin)
+        // un surplus ne compense qu'à moitié
+        assertEquals(30, com.somnia.domain.sleep.SleepDebt.compute(listOf(390, 510), 450).debtMin)
+    }
+
+    @Test
+    fun socialJetlagComparesWeekendAndWeekdays() {
+        fun n(d: Int, b: Int, w: Int) = com.somnia.domain.sleep.SocialJetlag.Night(d, b, w)
+        val nights = listOf(n(1, 23 * 60, 7 * 60), n(2, 23 * 60, 7 * 60), n(5, 1 * 60, 10 * 60), n(6, 1 * 60, 10 * 60))
+        val r = com.somnia.domain.sleep.SocialJetlag.compute(nights)!!
+        assertEquals(150, r.minutes) // milieu 3 h → 5 h 30
+    }
+}
