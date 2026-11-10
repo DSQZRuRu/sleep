@@ -54,15 +54,16 @@ fun RoomScene(
         Image(painterResource(R.drawable.art_room), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
 
         // Brumi sur l'oreiller
-        val brumiSize = w * 0.26f
-        CompanionView(stage, mood, Modifier.size(brumiSize).offset(x = w * 0.255f - brumiSize / 2, y = h * 0.6f - brumiSize * 0.85f))
+        // L'illustration pose ses personnages à ~87 % de sa hauteur : on aligne ce point sur l'oreiller.
+        val brumiSize = w * 0.19f
+        CompanionView(stage, mood, Modifier.size(brumiSize).offset(x = w * 0.255f - brumiSize / 2, y = h * 0.67f - brumiSize * 0.87f))
 
         // Créatures sur la couette
-        val slotX = listOf(0.40f, 0.55f, 0.70f)
-        val cSize = w * 0.16f
+        val slotX = listOf(0.47f, 0.60f, 0.73f)
+        val cSize = w * 0.14f
         for (i in 0 until 3) {
             val x = w * slotX[i] - cSize / 2
-            val y = h * 0.84f - cSize * 0.92f
+            val y = h * 0.80f - cSize * 0.87f
             val owned = bed.firstOrNull { it.slot == i }
             when {
                 owned != null -> CreatureView(owned.creature, Modifier.size(cSize).offset(x, y))

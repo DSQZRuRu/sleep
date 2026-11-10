@@ -23,11 +23,11 @@ private class Star(val x: Float, val y: Float, val r: Float, val phase: Float, v
 
 /** Ciel nocturne animé : dégradé, nébuleuses qui dérivent et étoiles qui scintillent. */
 @Composable
-fun Starfield(modifier: Modifier = Modifier, density: Int = 90) {
+fun Starfield(modifier: Modifier = Modifier, density: Int = 70) {
     val stars = remember(density) {
         val rnd = Random(7)
         List(density) {
-            Star(rnd.nextFloat(), rnd.nextFloat(), 0.6f + rnd.nextFloat() * 1.6f, rnd.nextFloat() * 2f * PI.toFloat(),
+            Star(rnd.nextFloat(), rnd.nextFloat(), 0.35f + rnd.nextFloat() * 0.75f, rnd.nextFloat() * 2f * PI.toFloat(),
                 0.6f + rnd.nextFloat() * 1.4f, rnd.nextInt(6) == 0)
         }
     }
@@ -53,8 +53,9 @@ fun Starfield(modifier: Modifier = Modifier, density: Int = 90) {
             val a = 0.35f + 0.65f * (0.5f + 0.5f * sin(time * s.speed + s.phase))
             val c = if (s.warm) SomniaColors.Gold else Color.White
             val center = Offset(s.x * size.width, s.y * size.height)
-            drawCircle(c.copy(alpha = a * 0.22f), s.r * 3f * this.density, center)
-            drawCircle(c.copy(alpha = a), s.r * this.density, center)
+            // Petits points nets ; seules quelques étoiles dorées ont un léger halo.
+            if (s.warm) drawCircle(c.copy(alpha = a * 0.15f), s.r * 2.4f * this.density, center)
+            drawCircle(c.copy(alpha = a * 0.85f), s.r * this.density, center)
         }
     }
 }

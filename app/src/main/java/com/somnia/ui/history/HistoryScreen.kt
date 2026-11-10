@@ -52,8 +52,9 @@ import java.util.Locale
 
 private val dateFormat = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.FRENCH)
 
+/** Une nuit porte le nom du soir où elle a commencé (coucher à 1 h → la veille), comme dans le graphique. */
 fun nightTitle(s: SleepSessionEntity): String =
-    "Nuit du " + Instant.ofEpochMilli(s.startTime).atZone(Clock.zone()).format(dateFormat)
+    "Nuit du " + java.time.LocalDate.ofEpochDay(Clock.nightDay(s.startTime)).format(dateFormat)
 
 @Composable
 fun HistoryScreen(vm: HistoryViewModel, onOpen: (Long) -> Unit) {
