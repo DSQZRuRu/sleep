@@ -49,6 +49,21 @@ Android efface les données d'une app quand on la désinstalle. Somnia écrit do
 La sauvegarde automatique d'Android (chiffrée, sur le compte Google) est également activée.
 Les mises à jour s'installent par-dessus l'app sans rien effacer : il n'est pas nécessaire de désinstaller.
 
+### Rituels, monde des rêves et outils du quotidien
+
+| Fonctionnalité | Détail |
+|---|---|
+| Phase de la lune | Calculée sur le téléphone et dessinée dans la fenêtre de la chambre. Opaline, une créature légendaire, n'apparaît que les nuits de pleine lune. |
+| Chambre décorable | 22 objets (couettes, rideaux, veilleuses, plantes, tapis, mobiles, décors muraux) achetés en poussière d'étoiles. Chaque objet est un calque vectoriel, avec aperçu avant achat. Les bonus sont petits (2 à 3 %) et conditionnés. |
+| Rituel du soir | Liste de préparation, respiration guidée avec Brumi (cohérence 5-5 ou 4-7-8), son d'endormissement. +10 XP si une vraie nuit suit dans les 2 h. |
+| Journal des facteurs | Le matin : caféine, alcool, sport, écrans, stress, sieste, repas tardif, lumière du matin. L'onglet Conseils montre vos tendances dès qu'un facteur compte 3 nuits avec et 3 sans. |
+| Bilan de la semaine | Écran animé et notification le dimanche à 19 h (désactivable). |
+| Alerte de pose | Si le capteur ne sent presque rien de la nuit, l'app signale que le téléphone n'était sans doute pas sur le matelas. |
+| Expéditions oniriques | Chaque vraie nuit fait avancer Brumi à travers 6 régions. La régularité et un bon score l'accélèrent. 6 chapitres racontent son histoire, puis viennent les voyages libres. |
+| Évolution des créatures | Forme éveillée (aura) au niveau 5, forme astrale (couronne d'étoiles en orbite) au niveau 10. |
+| Sons d'endormissement | Bruit rose, bruit brun, vagues et pluie, synthétisés en direct, sans fichier audio. Minuteur de 15 à 60 min avec fondu. Pendant la lecture, le micro ignore les pics sonores. |
+| Widget | Brumi, l'heure de coucher idéale et un bouton pour lancer la nuit (Glance). |
+
 ### Interface de jeu
 
 - **Ciel nocturne animé** derrière tous les écrans : nébuleuses qui dérivent et étoiles qui scintillent.
