@@ -32,14 +32,33 @@ import kotlin.random.Random
 
 /**
  * Illustrations vectorielles (art/svg → res/drawable/art_*.xml, générées par tools/art/build_art.py).
- * Les créatures sans illustration gardent leur rendu procédural.
+ * Toute créature sans illustration (nouvel ajout) retombe sur le rendu procédural.
  */
 object CreatureArt {
     private val creatures = mapOf(
         "plumeline" to R.drawable.art_plumeline,
+        "frissonnette" to R.drawable.art_frissonnette,
+        "veilleuse" to R.drawable.art_veilleuse,
+        "brumelot" to R.drawable.art_brumelot,
+        "songelune" to R.drawable.art_songelune,
         "dormouflon" to R.drawable.art_dormouflon,
+        "abyssin" to R.drawable.art_abyssin,
+        "mousselin" to R.drawable.art_mousselin,
+        "lentorne" to R.drawable.art_lentorne,
+        "onirion" to R.drawable.art_onirion,
         "tourbillot" to R.drawable.art_tourbillot,
+        "grignoton" to R.drawable.art_grignoton,
+        "cliquetis" to R.drawable.art_cliquetis,
+        "orageon" to R.drawable.art_orageon,
         "givrelin" to R.drawable.art_givrelin,
+        "flocondor" to R.drawable.art_flocondor,
+        "lanternelle" to R.drawable.art_lanternelle,
+        "citrouillon" to R.drawable.art_citrouillon,
+        "brumoire" to R.drawable.art_brumoire,
+        "bourgeonnet" to R.drawable.art_bourgeonnet,
+        "petalune" to R.drawable.art_petalune,
+        "solsticelle" to R.drawable.art_solsticelle,
+        "meduzephyr" to R.drawable.art_meduzephyr,
     )
 
     @DrawableRes fun forCreature(id: String): Int? = creatures[id]

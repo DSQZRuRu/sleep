@@ -37,7 +37,7 @@ Les APK sont signés avec une clé de debug fixe (`app/debug.keystore`), donc ch
 - **Éclat de rêve**, second score : score de sommeil × (1 + bonus actifs). La **poussière d'étoiles ✦** gagnée chaque nuit découle de l'Éclat.
 - **Le lit** : jusqu'à 3 créatures installées (places débloquées aux niveaux 1, 3 et 6). Chaque créature a un bonus lié à un comportement sain (coucher à l'heure, 7–9 h, sommeil profond, efficacité, lever régulier, série, rebond, poussière). Le bonus ne compte **que si la nuit remplit sa condition**. L'**Harmonie** ajoute +3 % ou +8 % quand 2 ou 3 créatures du même type sont installées.
 - **Niveaux des créatures** (1 à 10) achetés en poussière d'étoiles. Une créature déjà connue rencontrée à nouveau se dissout en poussière.
-- **23 créatures du rêve**, dessinées en Canvas : 14 permanentes et 9 exclusives aux **événements saisonniers** (Nuit des Givres à Noël, Nuit des Lueurs, Éveil des Songes, Nuits Courtes), qui doublent leur bonus pendant leur saison et augmentent la poussière gagnée.
+- **23 créatures du rêve**, illustrées en vectoriel : 14 permanentes et 9 exclusives aux **événements saisonniers** (Nuit des Givres à Noël, Nuit des Lueurs, Éveil des Songes, Nuits Courtes), qui doublent leur bonus pendant leur saison et augmentent la poussière gagnée.
 - **XP et niveaux**, **séries** avec une protection par semaine, **3 défis hebdomadaires**, **25 badges**.
 - **Écran du matin animé** : score, Éclat de rêve bonus par bonus, XP, série, créatures, évolution, badges, ressenti.
 
@@ -51,13 +51,13 @@ Les mises à jour s'installent par-dessus l'app sans rien effacer : il n'est pas
 
 ### Illustrations
 
-Brumi (5 stades, avec une variante yeux fermés) et une partie des créatures sont des illustrations vectorielles originales. La source est en SVG dans `art/svg/`, écrite par `tools/art/build_art.py`, puis convertie en VectorDrawable Android (`res/drawable/art_*.xml`) par `tools/art/svg2vd.py`. `art/preview.html` affiche la planche complète.
+Brumi (5 stades, avec une variante yeux fermés) et les 23 créatures du rêve sont des illustrations vectorielles originales. La source est en SVG dans `art/svg/`, écrite par `tools/art/build_art.py`, puis convertie en VectorDrawable Android (`res/drawable/art_*.xml`) par `tools/art/svg2vd.py`. `art/preview.html` affiche la planche complète.
 
 ```bash
 python3 tools/art/build_art.py   # régénère SVG, VectorDrawable et aperçu
 ```
 
-Les créatures qui n'ont pas encore d'illustration gardent leur rendu procédural en Canvas.
+Une future créature sans illustration retombe automatiquement sur le rendu procédural en Canvas.
 
 ## Architecture
 
