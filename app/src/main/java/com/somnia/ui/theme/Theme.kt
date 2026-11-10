@@ -1,6 +1,8 @@
 package com.somnia.ui.theme
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import com.somnia.ui.game.Starfield
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -9,7 +11,9 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import com.somnia.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.somnia.domain.sleep.SleepStage
@@ -52,13 +56,27 @@ private val scheme = darkColorScheme(
     outline = Color(0xFF5A6496),
 )
 
+/** Police ronde et chaleureuse (Fredoka, SIL OFL 1.1 — licences/Fredoka-OFL.txt) pour les titres et chiffres. */
+val GameFont = FontFamily(
+    Font(R.font.fredoka_500, FontWeight.Medium),
+    Font(R.font.fredoka_600, FontWeight.SemiBold),
+    Font(R.font.fredoka_700, FontWeight.Bold),
+)
+
 private val base = Typography()
 private val typography = Typography(
-    displayLarge = base.displayLarge.copy(fontWeight = FontWeight.Light, letterSpacing = (-1).sp),
-    displayMedium = base.displayMedium.copy(fontWeight = FontWeight.Light),
-    headlineMedium = base.headlineMedium.copy(fontWeight = FontWeight.Normal),
-    titleLarge = base.titleLarge.copy(fontWeight = FontWeight.Normal),
-    labelSmall = TextStyle(fontFamily = FontFamily.Default, fontSize = 11.sp, letterSpacing = 1.2.sp, fontWeight = FontWeight.Medium),
+    displayLarge = base.displayLarge.copy(fontFamily = GameFont, fontWeight = FontWeight.SemiBold, letterSpacing = 0.sp),
+    displayMedium = base.displayMedium.copy(fontFamily = GameFont, fontWeight = FontWeight.SemiBold),
+    displaySmall = base.displaySmall.copy(fontFamily = GameFont, fontWeight = FontWeight.SemiBold),
+    headlineLarge = base.headlineLarge.copy(fontFamily = GameFont, fontWeight = FontWeight.SemiBold),
+    headlineMedium = base.headlineMedium.copy(fontFamily = GameFont, fontWeight = FontWeight.SemiBold),
+    headlineSmall = base.headlineSmall.copy(fontFamily = GameFont, fontWeight = FontWeight.SemiBold),
+    titleLarge = base.titleLarge.copy(fontFamily = GameFont, fontWeight = FontWeight.SemiBold),
+    titleMedium = base.titleMedium.copy(fontFamily = GameFont, fontWeight = FontWeight.SemiBold, fontSize = 17.sp),
+    titleSmall = base.titleSmall.copy(fontFamily = GameFont, fontWeight = FontWeight.SemiBold, fontSize = 15.sp),
+    labelLarge = base.labelLarge.copy(fontFamily = GameFont, fontWeight = FontWeight.SemiBold, fontSize = 15.sp),
+    labelMedium = base.labelMedium.copy(fontFamily = GameFont, fontWeight = FontWeight.Medium),
+    labelSmall = TextStyle(fontFamily = GameFont, fontSize = 12.sp, letterSpacing = 0.8.sp, fontWeight = FontWeight.Medium),
 )
 
 @Composable
@@ -67,7 +85,10 @@ fun SomniaTheme(content: @Composable () -> Unit) {
         // Surface racine : fixe la couleur de contenu par défaut (texte clair sur fond nuit).
         // Sans elle, tout Text sans couleur explicite était noir, donc illisible.
         Surface(modifier = Modifier.fillMaxSize(), color = SomniaColors.Night, contentColor = SomniaColors.Moon) {
-            content()
+            Box(Modifier.fillMaxSize()) {
+                Starfield(Modifier.fillMaxSize())
+                content()
+            }
         }
     }
 }

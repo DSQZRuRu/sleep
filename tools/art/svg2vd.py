@@ -157,8 +157,8 @@ def convert(svg_text):
             '<!-- Généré par tools/art/svg2vd.py depuis art/svg : ne pas modifier à la main. -->\n'
             '<vector xmlns:android="http://schemas.android.com/apk/res/android"\n'
             '    xmlns:aapt="http://schemas.android.com/aapt"\n'
-            '    android:width="256dp" android:height="256dp"\n'
-            '    android:viewportWidth="%s" android:viewportHeight="%s">\n') % (fmt(vb[2]), fmt(vb[3]))
+            '    android:width="%sdp" android:height="%sdp"\n'
+            '    android:viewportWidth="%s" android:viewportHeight="%s">\n') % (fmt(vb[2]), fmt(vb[3]), fmt(vb[2]), fmt(vb[3]))
     return head + "\n".join(out) + "\n</vector>\n"
 
 

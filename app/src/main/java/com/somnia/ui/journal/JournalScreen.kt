@@ -95,7 +95,7 @@ fun JournalScreen(vm: JournalViewModel) {
         item(span = { full }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Carnet des rêves", Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium)
-                StardustChip(ui.game.stardust)
+                com.somnia.ui.game.ResourceChip("✦", "${ui.game.stardust}", SomniaColors.Gold)
             }
         }
 
@@ -330,12 +330,19 @@ private fun BedSlot(owned: OwnedCreature?, unlocked: Boolean, lockLevel: Int, mo
 @Composable
 private fun CreatureTile(e: CreatureEntry, onClick: () -> Unit) {
     val found = e.count > 0
+    val frame = if (found) rarityColor(e.creature.rarity) else Color(0xFF3B4470)
+    val shape = RoundedCornerShape(18.dp)
     Column(
-        Modifier.background(SomniaColors.Surface, RoundedCornerShape(20.dp)).clickable(enabled = found, onClick = onClick).padding(8.dp),
+        Modifier
+            .background(Brush.verticalGradient(listOf(frame.copy(alpha = if (found) 0.28f else 0.08f), Color(0xEB121734))), shape)
+            .border(if (found) 2.dp else 1.dp, Brush.verticalGradient(listOf(frame, frame.copy(alpha = 0.25f))), shape)
+            .clickable(enabled = found, onClick = onClick).padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box {
             CreatureView(e.creature, Modifier.fillMaxWidth().aspectRatio(1f), animated = false, silhouette = !found)
+            if (found) Box(Modifier.align(Alignment.TopStart).size(10.dp).background(frame, CircleShape).border(1.5.dp, Color.White.copy(alpha = 0.7f), CircleShape))
+            e.owned?.let { o -> com.somnia.ui.game.LevelBadge(o.level, Modifier.align(Alignment.BottomEnd), size = 22.dp) }
             if (e.owned?.slot != null) Text("☾", Modifier.align(Alignment.TopEnd), color = SomniaColors.Lavender)
         }
         Text(if (found) e.creature.name else "???", style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center, maxLines = 1)
@@ -373,9 +380,10 @@ private fun CreatureDialog(
                         style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
                     ProgressBar(o.level / CreatureProgression.MAX_LEVEL.toFloat(), color = SomniaColors.Gold)
                     Text("Rencontrée ${o.count} fois", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
-                    if (!o.maxed) Button(onClick = onLevelUp, enabled = stardust >= o.upgradeCost, modifier = Modifier.fillMaxWidth()) {
-                        Text("Améliorer · ✦ ${o.upgradeCost}")
-                    } else Text("Niveau maximum ✧", color = SomniaColors.Gold)
+                    if (!o.maxed) com.somnia.ui.game.GameButton(
+                        "Améliorer · ✦ ${o.upgradeCost}", onClick = onLevelUp, enabled = stardust >= o.upgradeCost,
+                        modifier = Modifier.fillMaxWidth(), color = SomniaColors.Gold, height = 48.dp,
+                    ) else Text("Niveau maximum ✧", color = SomniaColors.Gold)
                     if (o.slot != null) OutlinedButton(onClick = onUnequip, modifier = Modifier.fillMaxWidth()) { Text("Retirer du lit") }
                     else if (canEquip) OutlinedButton(onClick = onEquip, modifier = Modifier.fillMaxWidth()) { Text("Installer dans le lit") }
                     message?.let { Text(it, color = SomniaColors.Teal, style = MaterialTheme.typography.bodySmall) }

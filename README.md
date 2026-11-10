@@ -49,9 +49,18 @@ Android efface les données d'une app quand on la désinstalle. Somnia écrit do
 La sauvegarde automatique d'Android (chiffrée, sur le compte Google) est également activée.
 Les mises à jour s'installent par-dessus l'app sans rien effacer : il n'est pas nécessaire de désinstaller.
 
+### Interface de jeu
+
+- **Ciel nocturne animé** derrière tous les écrans : nébuleuses qui dérivent et étoiles qui scintillent.
+- **Accueil en forme de chambre** : Brumi dort sur l'oreiller et les créatures installées sont assises sur la couette. Un toucher ouvre le Carnet.
+- **Barre de statut** : avatar de Brumi, niveau, jauge d'XP, série et poussière d'étoiles.
+- **Habillage** : panneaux en verre sombre au liseré lumineux, boutons 3D qui s'enfoncent, barre d'onglets flottante, cartes de créatures encadrées de la couleur de leur rareté.
+- **Gerbes d'étoiles** à la révélation du score et des grandes récompenses.
+- Police **Fredoka** (SIL Open Font License 1.1, voir `licenses/Fredoka-OFL.txt`) pour les titres et les chiffres.
+
 ### Illustrations
 
-Brumi (5 stades, avec une variante yeux fermés) et les 23 créatures du rêve sont des illustrations vectorielles originales. La source est en SVG dans `art/svg/`, écrite par `tools/art/build_art.py`, puis convertie en VectorDrawable Android (`res/drawable/art_*.xml`) par `tools/art/svg2vd.py`. `art/preview.html` affiche la planche complète.
+Brumi (5 stades, avec une variante yeux fermés), les 23 créatures du rêve et la chambre sont des illustrations vectorielles originales. La source est en SVG dans `art/svg/`, écrite par `tools/art/build_art.py`, puis convertie en VectorDrawable Android (`res/drawable/art_*.xml`) par `tools/art/svg2vd.py`. `art/preview.html` affiche la planche complète.
 
 ```bash
 python3 tools/art/build_art.py   # régénère SVG, VectorDrawable et aperçu

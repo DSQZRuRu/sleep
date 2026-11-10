@@ -20,8 +20,8 @@ GOLD_DEEP = "#F2B84B"
 
 
 # ---------- primitives ----------
-def svg(body, defs=""):
-    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><defs>%s</defs>%s</svg>' % (defs, body))
+def svg(body, defs="", w=256, h=256):
+    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %s %s"><defs>%s</defs>%s</svg>' % (w, h, defs, body))
 
 
 def lin(gid, x1, y1, x2, y2, stops):
@@ -611,6 +611,56 @@ def meduzephyr():
     return svg(b, defs)
 
 
+# ---------- Décor : la chambre (360 × 240) ----------
+def room():
+    defs = lin("wall", 180, 0, 180, 200, [(0, "#141A45", 1), (1, "#2B3070", 1)])
+    defs += lin("sky", 265, 30, 265, 130, [(0, "#070B22", 1), (1, "#28307A", 1)])
+    defs += lin("floor", 180, 190, 180, 240, [(0, "#1A1F4D", 1), (1, "#0E1230", 1)])
+    defs += lin("wood", 145, 104, 145, 200, [(0, "#6E5BC0", 1), (1, "#3D3285", 1)])
+    defs += lin("quilt", 145, 160, 145, 224, [(0, "#9AA6F7", 1), (1, "#5A66CF", 1)])
+    defs += lin("curtain", 0, 20, 0, 150, [(0, "#B9A8FF", 1), (1, "#7B68D8", 1)])
+    defs += rad("lampglow", 52, 92, 60, [(0, "#FFD98A", 0.55), (0.5, "#FFD98A", 0.15), (1, "#FFD98A", 0)])
+    defs += rad("moonglow", 286, 60, 40, [(0, "#FFF4D6", 0.5), (1, "#FFF4D6", 0)])
+    b = path("M0 0 H360 V240 H0 Z", "url(#wall)")
+    for (x, y) in [(20, 30), (70, 18), (120, 40), (160, 14), (30, 150), (190, 60), (180, 150), (340, 160), (110, 90), (345, 20)]:
+        b += sparkle(x, y, 3, "#3E4690")
+    b += path("M0 186 H360 V240 H0 Z", "url(#floor)")
+    b += ellipse(170, 226, 150, 12, "#3A3F8C", 0.55)
+    # fenêtre
+    b += path("M208 134 V76 A57 57 0 0 1 322 76 V134 Z", "#3A3F7A")
+    b += path("M216 128 V78 A49 49 0 0 1 314 78 V128 Z", "url(#sky)")
+    b += circle(286, 60, 40, "url(#moonglow)")
+    b += path("M294 44 C278 42 266 56 268 72 C270 86 284 94 298 90 C286 86 278 76 280 64 C282 54 288 48 294 44 Z", "#FFE6A8")
+    for (x, y, r) in [(236, 66, 3.5), (252, 96, 2.5), (300, 112, 3), (232, 110, 2), (262, 50, 2)]:
+        b += sparkle(x, y, r * 1.6, WHITE)
+    b += path("M265 26 V128 M216 92 H314", stroke="#3A3F7A", width=5)
+    b += path("M204 136 H326", stroke="#4A4F90", width=8)
+    # rideaux
+    b += path("M196 14 C206 60 200 110 214 150 L190 150 C184 104 184 50 186 14 Z", "url(#curtain)")
+    b += path("M334 14 C324 60 330 110 316 150 L340 150 C346 104 346 50 344 14 Z", "url(#curtain)")
+    b += path("M180 12 H350", stroke="#C9B9FF", width=5)
+    # étagère, plante et veilleuse
+    b += circle(52, 92, 60, "url(#lampglow)")
+    b += path("M18 112 H108", stroke="#4A3C90", width=6)
+    b += path("M40 112 L44 94 H60 L64 112 Z", "#FFD98A") + path("M50 94 V84", stroke="#E7A94A", width=3)
+    b += path("M80 112 L84 98 H100 L104 112 Z", "#5C6BC4")
+    for (x, y, rot) in [(86, 92, -30), (92, 88, 0), (98, 92, 30)]:
+        b += ellipse(x, y, 4, 9, "#7FD08A", rot=rot)
+    # lit
+    b += path("M40 204 V128 Q40 108 60 108 H230 Q250 108 250 128 V204 Z", "url(#wood)")
+    b += path("M145 120 C130 120 122 134 128 146 C116 142 112 126 124 118 C132 112 140 114 145 120 Z", "#FFD98A", op=0.8)
+    b += path("M52 196 V130 Q52 120 62 120 H228 Q238 120 238 130 V196 Z", "#000000", op=0.12)
+    b += ellipse(92, 160, 44, 18, "#EEF0FF") + ellipse(84, 154, 22, 6, WHITE, 0.7)
+    b += path("M28 198 Q28 168 58 166 H232 Q262 168 262 198 V214 Q262 224 252 224 H38 Q28 224 28 214 Z", "url(#quilt)")
+    b += path("M28 198 Q28 168 58 166 H130 Q100 196 112 224 H38 Q28 224 28 214 Z", "#B4BEFF", op=0.35)
+    for (x, y) in [(150, 186), (190, 200), (230, 184), (176, 214), (70, 206)]:
+        b += path("M%s %s C%s %s %s %s %s %s C%s %s %s %s %s %s Z" % (x + 4, y - 5, x - 4, y - 6, x - 6, y + 4, x + 2, y + 6,
+                                                                       x - 2, y + 2, x - 2, y - 2, x + 4, y - 5), "#FFE6A8", op=0.7)
+    b += path("M28 200 Q145 190 262 200", stroke=WHITE, width=2, op=0.3)
+    b += path("M44 224 V236 M246 224 V236", stroke="#2E2770", width=8)
+    return svg(b, defs, 360, 240)
+
+
 ART = {
     "art_brumi_egg": brumi_egg(),
     "art_brumi_sprout": brumi_sprout(),
@@ -644,6 +694,7 @@ ART = {
     "art_petalune": petalune(),
     "art_solsticelle": solsticelle(),
     "art_meduzephyr": meduzephyr(),
+    "art_room": room(),
 }
 
 if __name__ == "__main__":
@@ -658,6 +709,7 @@ if __name__ == "__main__":
     open(os.path.join(ROOT, "art", "preview.html"), "w", encoding="utf-8").write(
         "<!doctype html><meta charset=utf-8><style>body{background:#0B1026;color:#AEB4D6;font:13px sans-serif;"
         "display:flex;flex-wrap:wrap;gap:12px;padding:16px;margin:0}figure{margin:0;background:#141A36;"
-        "border-radius:20px;padding:8px;text-align:center}img{width:200px;height:200px;display:block}</style>"
+        "border-radius:20px;padding:8px;text-align:center}img{width:200px;height:200px;display:block}"
+        "img[src*=room]{width:420px;height:280px}</style>"
         + "".join(cards))
     print("ok", len(ART))

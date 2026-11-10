@@ -38,6 +38,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.somnia.domain.game.CreatureProgression
+import com.somnia.ui.game.GameButton
+import com.somnia.ui.game.GameHud
+import com.somnia.ui.game.RoomScene
 import com.somnia.ui.components.CompanionView
 import com.somnia.ui.components.CreatureView
 import com.somnia.ui.components.ProgressBar
@@ -61,29 +65,7 @@ fun HomeScreen(vm: HomeViewModel, onSettings: () -> Unit, onOpenTip: () -> Unit,
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(greeting(), style = MaterialTheme.typography.headlineMedium)
-                Text("Niveau ${ui.level.level} · série de ${ui.game.streak} nuit${if (ui.game.streak > 1) "s" else ""}",
-                    color = SomniaColors.Muted)
-            }
-            IconButton(onClick = onSettings) { Icon(Icons.Filled.Settings, "Réglages", tint = SomniaColors.Muted) }
-        }
-
-        // Compagnon
-        SomniaCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                CompanionView(ui.stage, ui.mood, Modifier.size(110.dp))
-                Spacer(Modifier.size(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("${ui.stage.label} · ${ui.mood.label}", style = MaterialTheme.typography.titleMedium)
-                    Text(CompanionLogic.message(ui.mood), style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
-                    Spacer(Modifier.height(8.dp))
-                    ProgressBar(ui.level.xpIntoLevel / ui.level.xpForLevel.toFloat(), color = SomniaColors.Gold)
-                    Text("${ui.level.xpIntoLevel} / ${ui.level.xpForLevel} XP", style = MaterialTheme.typography.labelSmall, color = SomniaColors.Muted)
-                }
-            }
-        }
+        GameHud(ui.level, ui.game.streak, ui.game.stardust, ui.stage, ui.mood, onSettings = onSettings)
 
         event?.let { e ->
             val accent = Color(e.accent)
@@ -99,22 +81,16 @@ fun HomeScreen(vm: HomeViewModel, onSettings: () -> Unit, onOpenTip: () -> Unit,
             }
         }
 
-        // Le lit de ce soir
-        SomniaCard(Modifier.clickable(onClick = onOpenJournal)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    SectionLabel("Ce soir dans votre lit")
-                    Text(
-                        if (bed.isEmpty()) "Personne pour l'instant : installez une créature depuis le Carnet pour gagner des bonus d'Éclat."
-                        else bed.joinToString(" · ") { "${it.creature.name} ${it.creature.bonus.symbol}+${it.bonusPct} %" },
-                        style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
-                    )
-                }
-                Text("✦ ${ui.game.stardust}", color = SomniaColors.Gold, style = MaterialTheme.typography.titleSmall)
-            }
-            if (bed.isNotEmpty()) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                bed.forEach { CreatureView(it.creature, Modifier.size(56.dp)) }
-            }
+        // La chambre : Brumi et les créatures installées dans le lit
+        RoomScene(ui.stage, ui.mood, bed, CreatureProgression.bedSlots(ui.level.level), onClick = onOpenJournal)
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text("${greeting()} · ${ui.stage.label}", style = MaterialTheme.typography.titleMedium)
+            Text(CompanionLogic.message(ui.mood), style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+            Text(
+                if (bed.isEmpty()) "Touchez le lit pour y installer une créature et gagner des bonus d'Éclat."
+                else "Dans le lit : " + bed.joinToString(" · ") { "${it.creature.name} ${it.creature.bonus.symbol}+${it.bonusPct} %" },
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Lavender,
+            )
         }
 
         // Estimation de secours
@@ -166,10 +142,13 @@ fun HomeScreen(vm: HomeViewModel, onSettings: () -> Unit, onOpenTip: () -> Unit,
             }
         }
 
-        Button(
+        GameButton(
+            "Commencer ma nuit",
             onClick = { SleepTrackingService.start(context, vm.nextAlarmAt()) },
-            modifier = Modifier.fillMaxWidth().height(64.dp),
-        ) { Text("Commencer ma nuit", style = MaterialTheme.typography.titleMedium) }
+            modifier = Modifier.fillMaxWidth(),
+            height = 64.dp,
+            leading = "☾",
+        )
         Text("Posez le téléphone sur le matelas, près de l'oreiller, puis éteignez l'écran. Branchez-le si possible.",
             style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
 

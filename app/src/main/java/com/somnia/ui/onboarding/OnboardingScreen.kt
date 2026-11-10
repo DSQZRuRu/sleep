@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -70,12 +71,12 @@ fun OnboardingScreen(vm: OnboardingViewModel, onDone: () -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             if (s.step > 0) TextButton(onClick = vm::back) { Text("Retour") } else Spacer(Modifier.size(1.dp))
             val enabled = s.step != 2 || s.chronoComplete
-            Button(
-                onClick = {
-                    if (s.step == STEPS - 1) { vm.finish(); onDone() } else vm.next()
-                },
+            com.somnia.ui.game.GameButton(
+                if (s.step == STEPS - 1) "Commencer" else "Continuer",
+                onClick = { if (s.step == STEPS - 1) { vm.finish(); onDone() } else vm.next() },
                 enabled = enabled,
-            ) { Text(if (s.step == STEPS - 1) "Commencer" else "Continuer") }
+                modifier = Modifier.width(180.dp),
+            )
         }
     }
 }

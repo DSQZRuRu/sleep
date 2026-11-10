@@ -47,7 +47,10 @@ import com.somnia.ui.onboarding.OnboardingScreen
 import com.somnia.ui.onboarding.OnboardingViewModel
 import com.somnia.ui.settings.SettingsScreen
 import com.somnia.ui.settings.SettingsViewModel
-import com.somnia.ui.theme.SomniaColors
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import com.somnia.ui.game.GameNavBar
+import com.somnia.ui.game.NavItem
 import com.somnia.ui.tips.TipsScreen
 import com.somnia.ui.tracking.TrackingScreen
 import com.somnia.update.UpdateBanner
@@ -98,12 +101,14 @@ private fun MainNavigation(container: AppContainer) {
     val updates = containerViewModel { UpdateViewModel(container.appContext) }
 
     Scaffold(
-        containerColor = SomniaColors.Night,
+        containerColor = Color.Transparent,
         topBar = { UpdateBanner(updates) },
         bottomBar = {
-            if (showBar) NavigationBar(containerColor = SomniaColors.Surface) {
-                Tab.entries.forEach { tab ->
-                    NavigationBarItem(
+            if (showBar) GameNavBar(
+                Tab.entries.map { tab ->
+                    NavItem(
+                        label = tab.label,
+                        icon = tab.icon?.let { rememberVectorPainter(it) } ?: painterResource(R.drawable.ic_moon),
                         selected = route == tab.route,
                         onClick = {
                             nav.navigate(tab.route) {
@@ -112,15 +117,9 @@ private fun MainNavigation(container: AppContainer) {
                                 restoreState = true
                             }
                         },
-                        icon = {
-                            val v = tab.icon
-                            if (v != null) Icon(v, null) else Icon(painterResource(R.drawable.ic_moon), null)
-                        },
-                        label = { Text(tab.label) },
-                        colors = NavigationBarItemDefaults.colors(indicatorColor = SomniaColors.SurfaceHigh),
                     )
                 }
-            }
+            )
         },
     ) { padding ->
         NavHost(nav, startDestination = Tab.NIGHT.route, modifier = Modifier.padding(padding)) {

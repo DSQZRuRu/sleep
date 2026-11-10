@@ -51,6 +51,8 @@ import com.somnia.domain.game.XpCalculator
 import com.somnia.domain.sleep.SleepScoreCalculator
 import com.somnia.domain.sleep.TimeMath
 import com.somnia.ui.components.CompanionView
+import com.somnia.ui.game.GameButton
+import com.somnia.ui.game.SparkleBurst
 import com.somnia.ui.components.CreatureView
 import com.somnia.ui.components.ProgressBar
 import com.somnia.ui.components.ScoreRing
@@ -69,11 +71,13 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
     var phase by remember { mutableIntStateOf(0) }
     val scoreAnim = remember { Animatable(0f) }
     val xpAnim = remember { Animatable(0f) }
+    var burst by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(session?.id, rewards) {
         if (session == null) return@LaunchedEffect
         delay(300)
         phase = 1
+        burst++
         scoreAnim.animateTo(session.score.toFloat(), tween(1400, easing = FastOutSlowInEasing))
         phase = 2; delay(500)
         phase = 3
@@ -89,13 +93,16 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
         }
         phase = 4; delay(400)
         phase = 5; delay(rewards?.creatures?.size?.times(350L) ?: 0L)
-        phase = 6; delay(400)
+        phase = 6
+        if (rewards != null && (rewards.levelAfter > rewards.levelBefore || rewards.stageAfter != rewards.stageBefore || rewards.newBadges.isNotEmpty())) burst++
+        delay(400)
         phase = 7
     }
 
+    Box(Modifier.fillMaxSize()) {
     Column(
         Modifier.fillMaxSize()
-            .background(Brush.verticalGradient(listOf(SomniaColors.Dawn, SomniaColors.Night, SomniaColors.Night)))
+            .background(Brush.verticalGradient(listOf(SomniaColors.Dawn.copy(alpha = 0.85f), androidx.compose.ui.graphics.Color.Transparent)))
             .statusBarsPadding().navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
@@ -237,9 +244,11 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
                 }
                 Text("Votre ressenti aide Somnia à ajuster votre nombre de cycles idéal.",
                     style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted, textAlign = TextAlign.Center)
-                FilledTonalButton(onClick = { vm.done(); onDone() }, modifier = Modifier.fillMaxWidth()) { Text("Commencer la journée") }
+                GameButton("Commencer la journée", onClick = { vm.done(); onDone() }, modifier = Modifier.fillMaxWidth(), leading = "☀")
             }
         }
+    }
+    SparkleBurst(burst.takeIf { it > 0 }, Modifier.fillMaxSize())
     }
 }
 
