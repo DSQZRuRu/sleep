@@ -97,6 +97,14 @@ private fun MainNavigation(container: AppContainer) {
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val showBar = Tab.entries.any { it.route == route }
+    // Toute navigation vers un onglet (barre ou raccourci) passe par ici, pour garder une pile cohérente.
+    val goToTab: (Tab) -> Unit = { tab ->
+        nav.navigate(tab.route) {
+            popUpTo(nav.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
     // Partagé par le bandeau et les réglages (portée de l'activité).
     val updates = containerViewModel { UpdateViewModel(container.appContext) }
 
@@ -110,13 +118,7 @@ private fun MainNavigation(container: AppContainer) {
                         label = tab.label,
                         icon = tab.icon?.let { rememberVectorPainter(it) } ?: painterResource(R.drawable.ic_moon),
                         selected = route == tab.route,
-                        onClick = {
-                            nav.navigate(tab.route) {
-                                popUpTo(nav.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
+                        onClick = { goToTab(tab) },
                     )
                 }
             )
@@ -127,8 +129,8 @@ private fun MainNavigation(container: AppContainer) {
                 HomeScreen(
                     containerViewModel { HomeViewModel(container) },
                     onSettings = { nav.navigate("settings") },
-                    onOpenTip = { nav.navigate(Tab.TIPS.route) { launchSingleTop = true } },
-                    onOpenJournal = { nav.navigate(Tab.JOURNAL.route) { launchSingleTop = true } },
+                    onOpenTip = { goToTab(Tab.TIPS) },
+                    onOpenJournal = { goToTab(Tab.JOURNAL) },
                 )
             }
             composable(Tab.HISTORY.route) {
