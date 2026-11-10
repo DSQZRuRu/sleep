@@ -137,6 +137,8 @@ fun JournalScreen(vm: JournalViewModel) {
             }
         }
 
+        item(span = { full }) { ExpeditionCard(ui.game.expeditionRegion, ui.game.expeditionProgress) }
+
         item(span = { full }) {
             SomniaCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -206,7 +208,7 @@ fun JournalScreen(vm: JournalViewModel) {
         item(span = { full }) { SectionLabel("Créatures du rêve · ${ui.discovered}/${ui.creatures.size} découvertes") }
         items(ui.creatures, key = { it.creature.id }) { e -> CreatureTile(e) { detailId = e.creature.id } }
 
-        item(span = { full }) { SectionLabel("Créatures des événements") }
+        item(span = { full }) { SectionLabel("Créatures de saison et de pleine lune") }
         items(ui.eventCreatures, key = { it.creature.id }) { e -> CreatureTile(e) { detailId = e.creature.id } }
 
         item(span = { full }) { SectionLabel("Badges") }
@@ -304,7 +306,7 @@ private fun BedSlot(owned: OwnedCreature?, unlocked: Boolean, lockLevel: Int, mo
     ) {
         when {
             owned != null -> {
-                CreatureView(owned.creature, Modifier.fillMaxWidth().aspectRatio(1f))
+                CreatureView(owned.creature, Modifier.fillMaxWidth().aspectRatio(1f), level = owned.level)
                 Text(owned.creature.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
                 Text("niv. ${owned.level} · ${owned.creature.bonus.symbol} +${owned.bonusPct} %",
                     style = MaterialTheme.typography.labelSmall, color = SomniaColors.Gold)
@@ -340,7 +342,7 @@ private fun CreatureTile(e: CreatureEntry, onClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box {
-            CreatureView(e.creature, Modifier.fillMaxWidth().aspectRatio(1f), animated = false, silhouette = !found)
+            CreatureView(e.creature, Modifier.fillMaxWidth().aspectRatio(1f), animated = false, silhouette = !found, level = e.owned?.level ?: 1)
             if (found) Box(Modifier.align(Alignment.TopStart).size(10.dp).background(frame, CircleShape).border(1.5.dp, Color.White.copy(alpha = 0.7f), CircleShape))
             e.owned?.let { o -> com.somnia.ui.game.LevelBadge(o.level, Modifier.align(Alignment.BottomEnd), size = 22.dp) }
             if (e.owned?.slot != null) Text("☾", Modifier.align(Alignment.TopEnd), color = SomniaColors.Lavender)
@@ -349,6 +351,7 @@ private fun CreatureTile(e: CreatureEntry, onClick: () -> Unit) {
         Text(
             when {
                 e.owned != null -> "niv. ${e.owned.level} · ×${e.count}"
+                e.creature.eventId == "pleinelune" -> "Pleine lune"
                 e.creature.eventId != null -> "Événement"
                 else -> e.creature.type.label
             },
@@ -367,8 +370,15 @@ private fun CreatureDialog(
     val o = entry.owned
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { CreatureView(c, Modifier.size(120.dp)) },
-        title = { Text(if (o != null) "${c.name} · niv. ${o.level}" else c.name) },
+        icon = { CreatureView(c, Modifier.size(120.dp), level = o?.level ?: 1) },
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(if (o != null) "${c.name} · niv. ${o.level}" else c.name)
+                o?.let { CreatureProgression.formName(it.level) }?.let {
+                    Text(it, style = MaterialTheme.typography.labelLarge, color = SomniaColors.Gold)
+                }
+            }
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("${c.type.label} · ${c.rarity.label}", color = rarityColor(c.rarity))
@@ -376,6 +386,8 @@ private fun CreatureDialog(
                 if (o != null) {
                     Spacer(Modifier.height(4.dp))
                     Text(bonusText(c, o.bonusPct), color = SomniaColors.Gold)
+                    if (o.level < 5) Text("Au niveau 5, ${c.name} prend sa forme éveillée ; au niveau 10, sa forme astrale.",
+                        style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
                     if (!o.maxed) Text("Niveau ${o.level + 1} : +${CreatureProgression.bonusPct(c, o.level + 1)} %",
                         style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
                     ProgressBar(o.level / CreatureProgression.MAX_LEVEL.toFloat(), color = SomniaColors.Gold)
@@ -426,5 +438,59 @@ private fun EventCard(ui: JournalUi) {
                 style = MaterialTheme.typography.titleMedium, color = Color(next.accent))
             Text(next.description, style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
         }
+    }
+}
+
+
+@Composable
+private fun ExpeditionCard(regionIndex: Int, progress: Int) {
+    var reading by remember { mutableStateOf(false) }
+    val regions = com.somnia.domain.game.Expedition.regions
+    val current = regions.getOrNull(regionIndex)
+    SomniaCard(accent = current?.let { Color(it.accent) } ?: SomniaColors.Gold) {
+        SectionLabel("Expédition onirique")
+        if (current != null) {
+            Text(current.name, style = MaterialTheme.typography.titleLarge, color = Color(current.accent))
+            Text(current.description, style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+            com.somnia.ui.game.GameGauge(progress / current.steps.toFloat(), color = Color(current.accent))
+            Text("$progress / ${current.steps} étapes · chaque vraie nuit fait avancer Brumi, la régularité et un bon score plus vite",
+                style = MaterialTheme.typography.labelSmall, color = SomniaColors.Muted)
+        } else {
+            Text("Voyages libres", style = MaterialTheme.typography.titleLarge, color = SomniaColors.Gold)
+            com.somnia.ui.game.GameGauge(progress / com.somnia.domain.game.Expedition.FREE_ROAM_STEPS.toFloat())
+            Text("Brumi garde le Phare de la Lune. Toutes les ${com.somnia.domain.game.Expedition.FREE_ROAM_STEPS} étapes : +${com.somnia.domain.game.Expedition.FREE_ROAM_STARDUST} ✦",
+                style = MaterialTheme.typography.labelSmall, color = SomniaColors.Muted)
+        }
+        // Route des régions
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            regions.forEachIndexed { i, r ->
+                val done = i < regionIndex
+                val here = i == regionIndex
+                Box(
+                    Modifier.size(if (here) 22.dp else 16.dp)
+                        .background(if (done || here) Color(r.accent) else Color(0xFF2A3157), CircleShape)
+                        .border(2.dp, if (here) Color.White else Color.Transparent, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) { if (done) Text("✓", style = MaterialTheme.typography.labelSmall, color = SomniaColors.Night) }
+            }
+        }
+        if (regionIndex > 0) OutlinedButton(onClick = { reading = true }, modifier = Modifier.fillMaxWidth()) {
+            Text("Lire l'histoire de Brumi (${minOf(regionIndex, regions.size)} chapitre${if (regionIndex > 1) "s" else ""})")
+        }
+    }
+    if (reading) {
+        AlertDialog(
+            onDismissRequest = { reading = false },
+            title = { Text("L'histoire de Brumi") },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    regions.take(regionIndex).forEach { r ->
+                        Text(r.chapterTitle, style = MaterialTheme.typography.titleMedium, color = Color(r.accent))
+                        Text(r.chapter)
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { reading = false }) { Text("Fermer") } },
+        )
     }
 }

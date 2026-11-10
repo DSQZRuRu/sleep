@@ -53,6 +53,14 @@ import com.somnia.ui.game.GameNavBar
 import com.somnia.ui.game.NavItem
 import com.somnia.ui.tips.TipsScreen
 import com.somnia.ui.tracking.TrackingScreen
+import androidx.compose.runtime.LaunchedEffect
+import com.somnia.data.db.ProfileEntity
+import com.somnia.data.repository.NightPlanner
+import com.somnia.ui.recap.RecapScreen
+import com.somnia.ui.recap.RecapViewModel
+import com.somnia.ui.ritual.RitualScreen
+import com.somnia.ui.room.RoomScreen
+import com.somnia.ui.room.RoomViewModel
 import com.somnia.update.UpdateBanner
 import com.somnia.update.UpdateViewModel
 
@@ -105,6 +113,15 @@ private fun MainNavigation(container: AppContainer) {
             restoreState = true
         }
     }
+    // Ouverture demandée par une notification.
+    val pending by PendingNav.target.collectAsStateWithLifecycle()
+    LaunchedEffect(pending) {
+        when (pending) {
+            PendingNav.RITUAL -> nav.navigate("ritual") { launchSingleTop = true }
+            PendingNav.RECAP -> nav.navigate("recap/0") { launchSingleTop = true }
+        }
+        PendingNav.target.value = null
+    }
     // Partagé par le bandeau et les réglages (portée de l'activité).
     val updates = containerViewModel { UpdateViewModel(container.appContext) }
 
@@ -131,13 +148,36 @@ private fun MainNavigation(container: AppContainer) {
                     onSettings = { nav.navigate("settings") },
                     onOpenTip = { goToTab(Tab.TIPS) },
                     onOpenJournal = { goToTab(Tab.JOURNAL) },
+                    onOpenRoom = { nav.navigate("room") },
+                    onOpenRitual = { nav.navigate("ritual") },
                 )
             }
             composable(Tab.HISTORY.route) {
-                HistoryScreen(containerViewModel { HistoryViewModel(container) }, onOpen = { nav.navigate("night/$it") })
+                HistoryScreen(
+                    containerViewModel { HistoryViewModel(container) },
+                    onOpen = { nav.navigate("night/$it") },
+                    onOpenRecap = { weeks -> nav.navigate("recap/$weeks") },
+                )
             }
             composable(Tab.JOURNAL.route) { JournalScreen(containerViewModel { JournalViewModel(container) }) }
-            composable(Tab.TIPS.route) { TipsScreen(container.profileRepository.profile) }
+            composable(Tab.TIPS.route) { TipsScreen(container.profileRepository.profile, container.sleepRepository.history) }
+            composable("room") {
+                RoomScreen(containerViewModel { RoomViewModel(container) }, onBack = { nav.popBackStack() },
+                    onManageBed = { goToTab(Tab.JOURNAL) })
+            }
+            composable("ritual") {
+                val game by container.gameRepository.state.collectAsStateWithLifecycle(GameStateEntity())
+                val profile by container.profileRepository.profile.collectAsStateWithLifecycle(ProfileEntity())
+                RitualScreen(
+                    CompanionStage.forCare(game.companionCare), container.reminderPrefs,
+                    profileWakeAlarm = { NightPlanner.nextWakeAt(profile) },
+                    onBack = { nav.popBackStack() },
+                )
+            }
+            composable("recap/{weeks}", arguments = listOf(navArgument("weeks") { type = NavType.IntType })) { entry ->
+                val weeks = entry.arguments?.getInt("weeks") ?: 0
+                RecapScreen(containerViewModel(key = "recap-$weeks") { RecapViewModel(container, weeks) }, onBack = { nav.popBackStack() })
+            }
             composable("settings") {
                 SettingsScreen(containerViewModel { SettingsViewModel(container) }, updates, onBack = { nav.popBackStack() })
             }

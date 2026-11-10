@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Généré par tools/art/svg2vd.py depuis art/svg : ne pas modifier à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp" android:height="240dp"
+    android:viewportWidth="360" android:viewportHeight="240">
+    <path android:pathData="M-12,92 a64,64 0 1,0 128,0 a64,64 0 1,0 -128,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="52" android:centerY="92" android:gradientRadius="60">
+                <item android:offset="0" android:color="#8CFFB86B" />
+                <item android:offset="0.5" android:color="#26FFB86B" />
+                <item android:offset="1" android:color="#00FFB86B" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M52 66 V74"
+          android:strokeColor="#FF8A6A3A"
+          android:strokeWidth="2"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M38,92 a14,18 0 1,0 28,0 a14,18 0 1,0 -28,0 Z"
+          android:fillColor="#FFFFB86B" />
+    <path android:pathData="M40 92 H64 M42 84 H62 M42 100 H62"
+          android:strokeColor="#99E0883A"
+          android:strokeWidth="2"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M46 74 H58 M46 110 H58"
+          android:strokeColor="#FF8A4A1A"
+          android:strokeWidth="4"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+</vector>

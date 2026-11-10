@@ -7,6 +7,8 @@ import com.somnia.data.db.SleepSessionEntity
 import com.somnia.data.repository.StoredRewards
 import com.somnia.domain.game.CompanionLogic
 import com.somnia.domain.game.CompanionMood
+import com.somnia.domain.sleep.FactorInsights
+import com.somnia.domain.sleep.SleepFactor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +20,8 @@ data class MorningUi(
     val rewards: StoredRewards? = null,
     val mood: CompanionMood = CompanionMood.CALM,
     val rating: Int? = null,
+    val factors: Set<SleepFactor> = emptySet(),
+    val phoneNotOnBed: Boolean = false,
 )
 
 class MorningViewModel(private val c: AppContainer, private val sessionId: Long) : ViewModel() {
@@ -29,13 +33,24 @@ class MorningViewModel(private val c: AppContainer, private val sessionId: Long)
             val session = c.sleepRepository.session(sessionId)
             val rewards = c.gameRepository.reward(sessionId)
             val recent = c.sleepRepository.history.first().take(3).map { it.score }.reversed()
-            _ui.value = MorningUi(session, rewards, CompanionLogic.mood(recent), session?.morningRating)
+            val motion = c.sleepRepository.epochs(sessionId).map { it.motionCount }
+            _ui.value = MorningUi(
+                session, rewards, CompanionLogic.mood(recent), session?.morningRating,
+                factors = SleepFactor.parse(session?.factors.orEmpty()),
+                phoneNotOnBed = FactorInsights.phoneProbablyNotOnBed(motion),
+            )
         }
     }
 
     fun rate(value: Int) {
         _ui.value = _ui.value.copy(rating = value)
         viewModelScope.launch { c.nightProcessor.setMorningRating(sessionId, value) }
+    }
+
+    fun toggleFactor(f: SleepFactor) {
+        val next = _ui.value.factors.let { if (f in it) it - f else it + f }
+        _ui.value = _ui.value.copy(factors = next)
+        viewModelScope.launch { c.sleepRepository.setFactors(sessionId, next) }
     }
 
     fun done() {

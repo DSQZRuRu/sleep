@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Généré par tools/art/svg2vd.py depuis art/svg : ne pas modifier à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp" android:height="240dp"
+    android:viewportWidth="360" android:viewportHeight="240">
+    <path android:pathData="M208 134 V76 A57 57 0 0 1 322 76 V134 Z M216 128 V78 A49 49 0 0 1 314 78 V128 Z"
+          android:fillColor="#FF3A3F7A"
+          android:fillType="evenOdd" />
+    <path android:pathData="M265 30 V128 M216 92 H314"
+          android:strokeColor="#FF3A3F7A"
+          android:strokeWidth="5"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M204 136 H326"
+          android:strokeColor="#FF4A4F90"
+          android:strokeWidth="8"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M180 12 H350"
+          android:strokeColor="#FFC9B9FF"
+          android:strokeWidth="5"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M0 186 H360 V240 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="180" android:startY="190" android:endX="180" android:endY="240">
+                <item android:offset="0" android:color="#FF1A1F4D" />
+                <item android:offset="1" android:color="#FF0E1230" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M18 112 H108"
+          android:strokeColor="#FF4A3C90"
+          android:strokeWidth="6"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+</vector>

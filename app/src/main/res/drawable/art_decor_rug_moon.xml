@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Généré par tools/art/svg2vd.py depuis art/svg : ne pas modifier à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp" android:height="240dp"
+    android:viewportWidth="360" android:viewportHeight="240">
+    <path android:pathData="M260,214 a46,13 0 1,0 92,0 a46,13 0 1,0 -92,0 Z"
+          android:fillColor="#FF8C7BE0" />
+    <path android:pathData="M270,214 a36,9 0 1,0 72,0 a36,9 0 1,0 -72,0 Z"
+          android:fillColor="#FFA99CF0" />
+    <path android:pathData="M310 209 C302 208 300 218 308 220 C304 216 304 212 310 209 Z"
+          android:fillColor="#E6FFE6A8" />
+</vector>

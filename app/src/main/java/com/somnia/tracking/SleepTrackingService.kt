@@ -98,6 +98,7 @@ class SleepTrackingService : LifecycleService() {
                 alarmTarget = requestedAlarm,
                 targetBed = ProfileRepository.idealBedtime(profile),
                 targetWake = profile.targetWakeMin,
+                ritualDone = container.reminderPrefs.ritualRecent(),
             )
             sessionId = id
             alarmAt = open?.alarmTargetTime ?: requestedAlarm
@@ -132,7 +133,8 @@ class SleepTrackingService : LifecycleService() {
 
     private suspend fun recordEpoch(id: Long, micActive: Boolean) {
         val m = motion.drain()
-        val s = if (micActive) sound.drain() else null
+        // Pendant un son d'endormissement, le micro entendrait le haut-parleur : on ignore ses pics.
+        val s = if (micActive) sound.drain().let { if (com.somnia.sound.Soundscape.isPlaying) it.copy(loudEvents = 0, snoreLike = false) else it } else null
         val used = phoneUsedThisMinute
         phoneUsedThisMinute = false
         motionHistory += m
@@ -180,6 +182,7 @@ class SleepTrackingService : LifecycleService() {
                 // Après un redémarrage du processus, la session ouverte est retrouvée dans Room.
                 val id = sessionId ?: container.sleepRepository.openSession()?.id
                 tickerJob?.cancel()
+                com.somnia.sound.Soundscape.stop()
                 motion.stop()
                 sound.stop()
                 runCatching { unregisterReceiver(screenReceiver) }

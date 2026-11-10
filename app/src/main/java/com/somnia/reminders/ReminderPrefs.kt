@@ -13,6 +13,8 @@ data class ReminderSettings(
     val smartEnabled: Boolean = false,
     /** Joue les rappels sur le volume des alarmes (sonne même en mode vibreur). */
     val loud: Boolean = false,
+    /** Notification du bilan, le dimanche soir. */
+    val weeklyRecap: Boolean = true,
 )
 
 /** Réglages des rappels et état de la surveillance, en SharedPreferences (lisibles depuis les receivers). */
@@ -27,6 +29,7 @@ class ReminderPrefs(context: Context) {
         offsetMin = sp.getInt("offset", 15),
         smartEnabled = sp.getBoolean("smart", false),
         loud = sp.getBoolean("loud", false),
+        weeklyRecap = sp.getBoolean("weekly", true),
     )
 
     fun update(transform: (ReminderSettings) -> ReminderSettings) {
@@ -36,6 +39,7 @@ class ReminderPrefs(context: Context) {
             .putInt("offset", s.offsetMin)
             .putBoolean("smart", s.smartEnabled)
             .putBoolean("loud", s.loud)
+            .putBoolean("weekly", s.weeklyRecap)
             .apply()
         _settings.value = s
     }
@@ -49,6 +53,13 @@ class ReminderPrefs(context: Context) {
     var lastPollScreenOff: Boolean
         get() = sp.getBoolean("last_poll_off", false)
         set(v) = sp.edit().putBoolean("last_poll_off", v).apply()
+
+    /** Heure du dernier rituel du soir terminé. */
+    var lastRitualAt: Long
+        get() = sp.getLong("last_ritual", 0L)
+        set(v) = sp.edit().putLong("last_ritual", v).apply()
+
+    fun ritualRecent(now: Long = System.currentTimeMillis()) = now - lastRitualAt in 0..2 * 3_600_000L
 
     /** Nuit (epochDay) pour laquelle le rappel intelligent a déjà été envoyé : un seul par nuit. */
     var lastSmartNight: Long

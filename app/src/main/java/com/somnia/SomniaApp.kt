@@ -23,10 +23,17 @@ class SomniaApp : Application() {
         appScope.launch {
             if (container.profileRepository.get().onboardingDone) container.backupManager.autoBackup()
         }
+        // Le widget suit l'état du suivi (nuit en cours ou non).
+        appScope.launch {
+            com.somnia.tracking.TrackingState.status.collectLatest { com.somnia.widget.SomniaWidget.refresh(this@SomniaApp) }
+        }
         // Reprogramme les rappels dès que le profil (heure de coucher) ou leurs réglages changent.
         appScope.launch {
             combine(container.profileRepository.profile, container.reminderPrefs.settings) { p, s -> p to s }
-                .collectLatest { container.reminderScheduler.reschedule() }
+                .collectLatest {
+                    container.reminderScheduler.reschedule()
+                    com.somnia.widget.SomniaWidget.refresh(this@SomniaApp)
+                }
         }
     }
 }

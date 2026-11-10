@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import com.somnia.ui.navigation.PendingNav
 import com.somnia.ui.navigation.SomniaRoot
 import com.somnia.ui.theme.SomniaTheme
 
@@ -16,10 +17,16 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         val container = (application as SomniaApp).container
+        PendingNav.handle(intent)
         setContent {
             SomniaTheme {
                 SomniaRoot(container)
             }
         }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        PendingNav.handle(intent)
     }
 }

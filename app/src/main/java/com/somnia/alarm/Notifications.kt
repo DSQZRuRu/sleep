@@ -32,6 +32,7 @@ object Notifications {
     const val ID_NIGHT_READY = 3
     const val ID_REMINDER = 4
     const val ID_TEST = 5
+    const val ID_WEEKLY = 6
 
     fun createChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
@@ -97,8 +98,9 @@ object Notifications {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setAutoCancel(true)
-            .setContentIntent(openAppIntent(context))
+            .setContentIntent(openAppIntent(context, com.somnia.ui.navigation.PendingNav.RITUAL))
             .addAction(0, "Lancer le suivi", start)
+            .addAction(0, "Rituel du soir", openAppIntent(context, com.somnia.ui.navigation.PendingNav.RITUAL))
             .build()
     }
 
@@ -112,11 +114,22 @@ object Notifications {
             .setContentIntent(openAppIntent(context))
             .build()
 
-    private fun openAppIntent(context: Context): PendingIntent = PendingIntent.getActivity(
-        context, 10,
-        Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+    private fun openAppIntent(context: Context, open: String? = null): PendingIntent = PendingIntent.getActivity(
+        context, 10 + (open?.hashCode()?.and(0xFF) ?: 0),
+        Intent(context, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .apply { open?.let { putExtra(com.somnia.ui.navigation.PendingNav.EXTRA_OPEN, it) } },
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
     )
+
+    fun weeklyRecap(context: Context): Notification =
+        NotificationCompat.Builder(context, CHANNEL_INFO)
+            .setSmallIcon(R.drawable.ic_moon)
+            .setContentTitle("Votre bilan de la semaine est prêt ✦")
+            .setContentText("Nuits, régularité, créatures rencontrées : voyez comment s'est passée votre semaine.")
+            .setAutoCancel(true)
+            .setContentIntent(openAppIntent(context, com.somnia.ui.navigation.PendingNav.RECAP))
+            .build()
 
     fun tracking(context: Context, alarmAt: Long?, micActive: Boolean): Notification {
         val stop = PendingIntent.getService(

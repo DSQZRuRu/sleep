@@ -102,6 +102,7 @@ fun SettingsScreen(vm: SettingsViewModel, updates: UpdateViewModel, onBack: () -
                     "Somnia vous envoie un rappel (une fois par nuit). Plus précis avec l'accès aux données d'utilisation.",
                 style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
             )
+            ToggleRow("Bilan de la semaine le dimanche soir", r.weeklyRecap) { v -> vm.updateReminders { it.copy(weeklyRecap = v) } }
             ToggleRow("Sonner même en mode vibreur", r.loud) { v -> vm.updateReminders { it.copy(loud = v) } }
             Text("Le rappel utilise alors le volume des alarmes au lieu de celui des notifications.",
                 style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)

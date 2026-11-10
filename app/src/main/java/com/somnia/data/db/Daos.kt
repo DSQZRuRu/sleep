@@ -43,6 +43,12 @@ interface SleepDao {
     @Query("SELECT * FROM sleep_sessions WHERE startTime BETWEEN :from AND :to LIMIT 1")
     suspend fun sessionStartedBetween(from: Long, to: Long): SleepSessionEntity?
 
+    @Query("UPDATE sleep_sessions SET factors = :factors WHERE id = :id")
+    suspend fun setFactors(id: Long, factors: String)
+
+    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND startTime >= :from AND startTime < :to ORDER BY startTime ASC")
+    suspend fun processedBetween(from: Long, to: Long): List<SleepSessionEntity>
+
     @Query("DELETE FROM sleep_sessions WHERE id = :id")
     suspend fun deleteSession(id: Long)
 
@@ -91,6 +97,9 @@ interface GameDao {
     @Query("SELECT * FROM creature_catches")
     suspend fun catches(): List<CreatureCatchEntity>
 
+    @Query("SELECT * FROM creature_catches WHERE caughtAt >= :from AND caughtAt < :to")
+    suspend fun catchesBetween(from: Long, to: Long): List<CreatureCatchEntity>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertBadges(badges: List<BadgeUnlockEntity>)
 
@@ -129,6 +138,24 @@ interface GameDao {
 
     @Query("UPDATE creature_progress SET level = :level WHERE creatureId = :id")
     suspend fun setLevel(id: String, level: Int)
+
+    @Query("SELECT * FROM decor_owned")
+    fun observeDecorOwned(): Flow<List<DecorOwnedEntity>>
+
+    @Query("SELECT * FROM decor_owned")
+    suspend fun decorOwned(): List<DecorOwnedEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertDecorOwned(item: DecorOwnedEntity)
+
+    @Query("SELECT * FROM room_layout")
+    fun observeLayout(): Flow<List<RoomLayoutEntity>>
+
+    @Query("SELECT * FROM room_layout")
+    suspend fun layout(): List<RoomLayoutEntity>
+
+    @Upsert
+    suspend fun upsertLayout(item: RoomLayoutEntity)
 
     @Upsert
     suspend fun upsertReward(reward: NightRewardEntity)

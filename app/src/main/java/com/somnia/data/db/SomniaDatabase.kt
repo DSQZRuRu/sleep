@@ -18,6 +18,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ChallengeCompletionEntity::class,
         NightRewardEntity::class,
         CreatureProgressEntity::class,
+        DecorOwnedEntity::class,
+        RoomLayoutEntity::class,
     ],
     version = SomniaDatabase.VERSION,
     exportSchema = true,
@@ -28,7 +30,7 @@ abstract class SomniaDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao
 
     companion object {
-        const val VERSION = 2
+        const val VERSION = 3
         const val NAME = "somnia.db"
 
         /** v2 : Éclat de rêve, poussière d'étoiles, niveaux et lit des créatures, événements. */
@@ -52,9 +54,24 @@ abstract class SomniaDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 : facteurs du quotidien, rituel du soir, chambre décorable, expéditions, pleine lune. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sleep_sessions ADD COLUMN factors TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE sleep_sessions ADD COLUMN ritualDone INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE game_state ADD COLUMN expeditionRegion INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE game_state ADD COLUMN expeditionProgress INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE night_rewards ADD COLUMN expeditionSteps INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE night_rewards ADD COLUMN regionsCompleted TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE night_rewards ADD COLUMN fullMoon INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `decor_owned` (`itemId` TEXT NOT NULL, `purchasedAt` INTEGER NOT NULL, PRIMARY KEY(`itemId`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `room_layout` (`slot` TEXT NOT NULL, `itemId` TEXT NOT NULL, PRIMARY KEY(`slot`))")
+            }
+        }
+
         fun create(context: Context): SomniaDatabase =
             Room.databaseBuilder(context, SomniaDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
     }
 }

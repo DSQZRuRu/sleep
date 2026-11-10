@@ -13,7 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.remember
 import com.somnia.data.db.ProfileEntity
+import com.somnia.data.db.SleepSessionEntity
+import com.somnia.domain.sleep.FactorInsights
+import com.somnia.domain.sleep.FactorNight
+import com.somnia.domain.sleep.SleepFactor
 import com.somnia.data.repository.ProfileRepository
 import com.somnia.domain.tips.SleepTipsCatalog
 import com.somnia.ui.components.SectionLabel
@@ -22,8 +27,14 @@ import com.somnia.ui.theme.SomniaColors
 import kotlinx.coroutines.flow.Flow
 
 @Composable
-fun TipsScreen(profile: Flow<ProfileEntity>) {
+fun TipsScreen(profile: Flow<ProfileEntity>, history: Flow<List<SleepSessionEntity>>) {
     val p by profile.collectAsStateWithLifecycle(ProfileEntity())
+    val nights by history.collectAsStateWithLifecycle(emptyList())
+    val tagged = nights.filter { it.factors.isNotBlank() && it.totalSleepMin >= 180 }
+    val insights = remember(tagged) {
+        FactorInsights.compute(tagged.map { FactorNight(SleepFactor.parse(it.factors), it.latencyMin, it.totalSleepMin, it.score) })
+            .filter { it.notable }
+    }
     val chrono = ProfileRepository.chronotype(p)
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         item { Text("Conseils", style = MaterialTheme.typography.headlineMedium) }
@@ -43,6 +54,25 @@ fun TipsScreen(profile: Flow<ProfileEntity>) {
                     "Vous mettez en moyenne ${p.latencyMin} min à vous endormir. Si cela dure, essayez de ne vous coucher qu'à l'arrivée de la somnolence (voir « Le lit, c'est pour dormir »).",
                     color = SomniaColors.Muted,
                 )
+            }
+        }
+        item {
+            SomniaCard(accent = SomniaColors.Teal) {
+                SectionLabel("Vos tendances")
+                if (insights.isEmpty()) {
+                    Text(
+                        "Notez chaque matin ce qui s'est passé la veille (caféine, sport, écrans…). " +
+                            "Dès qu'un facteur aura au moins ${FactorInsights.MIN_EACH} nuits avec et ${FactorInsights.MIN_EACH} sans, ses effets s'afficheront ici. " +
+                            "Nuits renseignées : ${tagged.size}.",
+                        style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+                    )
+                } else {
+                    insights.take(4).forEach {
+                        Text("${it.factor.emoji} ${it.sentence()}", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Text("Tendances observées sur vos ${tagged.size} nuits renseignées : des corrélations, pas des preuves.",
+                        style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                }
             }
         }
         items(SleepTipsCatalog.all, key = { it.id }) { tip ->

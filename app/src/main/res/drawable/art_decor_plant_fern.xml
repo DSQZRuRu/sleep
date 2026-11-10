@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Généré par tools/art/svg2vd.py depuis art/svg : ne pas modifier à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp" android:height="240dp"
+    android:viewportWidth="360" android:viewportHeight="240">
+    <path android:pathData="M80 112 L84 98 H100 L104 112 Z"
+          android:fillColor="#FF5C6BC4" />
+    <group android:rotation="-50" android:pivotX="92" android:pivotY="98">
+        <path android:pathData="M87,78 a5,20 0 1,0 10,0 a5,20 0 1,0 -10,0 Z"
+              android:fillColor="#FF5FBF77" />
+    </group>
+    <group android:rotation="-25" android:pivotX="92" android:pivotY="98">
+        <path android:pathData="M87,78 a5,20 0 1,0 10,0 a5,20 0 1,0 -10,0 Z"
+              android:fillColor="#FF5FBF77" />
+    </group>
+    <group android:rotation="0" android:pivotX="92" android:pivotY="98">
+        <path android:pathData="M87,78 a5,20 0 1,0 10,0 a5,20 0 1,0 -10,0 Z"
+              android:fillColor="#FF5FBF77" />
+    </group>
+    <group android:rotation="25" android:pivotX="92" android:pivotY="98">
+        <path android:pathData="M87,78 a5,20 0 1,0 10,0 a5,20 0 1,0 -10,0 Z"
+              android:fillColor="#FF5FBF77" />
+    </group>
+    <group android:rotation="50" android:pivotX="92" android:pivotY="98">
+        <path android:pathData="M87,78 a5,20 0 1,0 10,0 a5,20 0 1,0 -10,0 Z"
+              android:fillColor="#FF5FBF77" />
+    </group>
+</vector>

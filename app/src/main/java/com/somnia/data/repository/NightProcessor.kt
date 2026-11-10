@@ -10,7 +10,11 @@ import com.somnia.data.db.NightRewardEntity
 import com.somnia.data.db.SessionSource
 import com.somnia.data.db.SleepSessionEntity
 import com.somnia.data.db.SomniaDatabase
+import com.somnia.domain.game.DecorCatalog
+import com.somnia.domain.game.DecorSlot
 import com.somnia.domain.game.DreamCreatureCatalog
+import com.somnia.domain.game.ExpeditionState
+import com.somnia.domain.sleep.MoonPhase
 import com.somnia.domain.game.EquippedCreature
 import com.somnia.domain.game.GameSnapshot
 import com.somnia.domain.game.SeasonalEvent
@@ -147,6 +151,11 @@ class NightProcessor(private val db: SomniaDatabase, private val activeEvent: ()
         }
         val previousScore = sleepDao.recentProcessed(2).firstOrNull { it.id != session.id }?.score
         val event = activeEvent()
+        // Pleine lune évaluée au milieu de la nuit.
+        val fullMoon = MoonPhase.isFullMoon((session.startTime + session.wakeTime) / 2)
+        val decor = DecorCatalog.layout(
+            gameDao.layout().mapNotNull { l -> runCatching { DecorSlot.valueOf(l.slot) }.getOrNull()?.let { it to l.itemId } }.toMap()
+        ).values.toList()
         val snapshot = GameSnapshot(
             totalXp = state.totalXp,
             streak = StreakState(state.streak, state.bestStreak, state.lastStreakNightDay, state.freezeUsedWeek),
@@ -164,6 +173,8 @@ class NightProcessor(private val db: SomniaDatabase, private val activeEvent: ()
         val rewards = RewardEngine.process(
             night, weekNights, snapshot, sleepDao.processedCount(), regularity,
             previousScore = previousScore, event = event,
+            fullMoon = fullMoon, ritualDone = session.ritualDone, decor = decor,
+            expedition = ExpeditionState(state.expeditionRegion, state.expeditionProgress),
         )
         val now = System.currentTimeMillis()
 
@@ -176,6 +187,8 @@ class NightProcessor(private val db: SomniaDatabase, private val activeEvent: ()
                 companionCare = state.companionCare + rewards.careGained,
                 stardust = state.stardust + rewards.stardustGained,
                 bestDream = maxOf(state.bestDream, rewards.dream.total),
+                expeditionRegion = rewards.expedition.state.regionIndex,
+                expeditionProgress = rewards.expedition.state.progress,
             )
         )
         if (rewards.creatures.isNotEmpty()) {
@@ -206,6 +219,9 @@ class NightProcessor(private val db: SomniaDatabase, private val activeEvent: ()
                 stardustGained = rewards.stardustGained,
                 duplicateStardust = rewards.duplicateStardust,
                 eventId = rewards.event?.id,
+                expeditionSteps = rewards.expedition.stepsGained,
+                regionsCompleted = rewards.expedition.completed.joinToString(",") { it.id },
+                fullMoon = fullMoon,
             )
         )
         return rewards

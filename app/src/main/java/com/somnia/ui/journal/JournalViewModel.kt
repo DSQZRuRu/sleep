@@ -84,7 +84,7 @@ class JournalViewModel(private val c: AppContainer) : ViewModel() {
                 ChallengeProgress(it, if (done) it.target else ChallengeCatalog.progress(it, weekNights), done)
             },
             creatures = DreamCreatureCatalog.all.map { CreatureEntry(it, byId[it.id]) },
-            eventCreatures = DreamCreatureCatalog.eventCreatures.map { CreatureEntry(it, byId[it.id]) },
+            eventCreatures = (DreamCreatureCatalog.eventCreatures + DreamCreatureCatalog.moonCreatures).map { CreatureEntry(it, byId[it.id]) },
             badges = BadgeCatalog.all.map { BadgeEntry(it.id, it.name, it.description, it.symbol, it.id in b.badges) },
             bed = (0 until 3).map { slot -> owned.firstOrNull { it.slot == slot } },
             slotsUnlocked = CreatureProgression.bedSlots(level.level),

@@ -16,6 +16,7 @@ data class BadgeContext(
     val maxCreatureLevel: Int = 1,
     val bestDream: Int = 0,
     val eventCreatureIds: Set<String> = emptySet(),
+    val regionsCompleted: Int = 0,
 )
 
 object BadgeCatalog {
@@ -44,6 +45,9 @@ object BadgeCatalog {
         Badge("event_lueurs", "Porte-lueur", "Rencontrer une créature de la Nuit des Lueurs", "✺"),
         Badge("event_eveil", "Premier bourgeon", "Rencontrer une créature de l'Éveil des Songes", "❀"),
         Badge("event_courtes", "Gardien du solstice", "Rencontrer une créature des Nuits Courtes", "☀"),
+        Badge("event_pleinelune", "Enfant de la lune", "Rencontrer Opaline une nuit de pleine lune", "◯"),
+        Badge("explorer1", "Premier pas", "Terminer la première région de l'expédition", "⚲"),
+        Badge("explorer_all", "Gardien du phare", "Atteindre le Phare de la Lune", "⛯"),
     )
 
     fun byId(id: String) = all.firstOrNull { it.id == id }
@@ -71,6 +75,8 @@ object BadgeCatalog {
         if (ctx.maxCreatureLevel >= 5) add("level5_creature")
         if (ctx.maxCreatureLevel >= 10) add("level10_creature")
         if (ctx.bestDream >= 120) add("dream120")
+        if (ctx.regionsCompleted >= 1) add("explorer1")
+        if (ctx.regionsCompleted >= Expedition.regions.size) add("explorer_all")
         ctx.eventCreatureIds.mapNotNull { DreamCreatureCatalog.byId(it)?.eventId }.toSet().forEach { add("event_$it") }
     }
 }

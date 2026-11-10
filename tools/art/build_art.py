@@ -661,6 +661,147 @@ def room():
     return svg(b, defs, 360, 240)
 
 
+# ---------- Chambre modulaire (calques 360 × 240 superposés dans l'app) ----------
+ROOM_DEFS = (lin("wall", 180, 0, 180, 200, [(0, "#141A45", 1), (1, "#2B3070", 1)])
+             + lin("sky", 265, 30, 265, 130, [(0, "#070B22", 1), (1, "#28307A", 1)])
+             + lin("floor", 180, 190, 180, 240, [(0, "#1A1F4D", 1), (1, "#0E1230", 1)])
+             + lin("wood", 145, 104, 145, 200, [(0, "#6E5BC0", 1), (1, "#3D3285", 1)]))
+QUILT_SHAPE = "M28 198 Q28 168 58 166 H232 Q262 168 262 198 V214 Q262 224 252 224 H38 Q28 224 28 214 Z"
+QUILT_FOLD = "M28 198 Q28 168 58 166 H130 Q100 196 112 224 H38 Q28 224 28 214 Z"
+
+
+def room_back():
+    b = path("M0 0 H360 V240 H0 Z", "url(#wall)")
+    for (x, y) in [(20, 30), (70, 18), (120, 40), (160, 14), (30, 150), (190, 60), (180, 150), (340, 160), (110, 90), (345, 20)]:
+        b += sparkle(x, y, 3, "#3E4690")
+    b += path("M216 128 V78 A49 49 0 0 1 314 78 V128 Z", "url(#sky)")
+    for (x, y, r) in [(236, 66, 3.5), (252, 96, 2.5), (300, 112, 3), (232, 110, 2), (262, 50, 2)]:
+        b += sparkle(x, y, r * 1.6, WHITE)
+    return svg(b, ROOM_DEFS, 360, 240)
+
+
+def room_window():
+    b = path("M208 134 V76 A57 57 0 0 1 322 76 V134 Z M216 128 V78 A49 49 0 0 1 314 78 V128 Z", "#3A3F7A")
+    b = b.replace('<path ', '<path fill-rule="evenodd" ', 1)
+    b += path("M265 30 V128 M216 92 H314", stroke="#3A3F7A", width=5)
+    b += path("M204 136 H326", stroke="#4A4F90", width=8)
+    b += path("M180 12 H350", stroke="#C9B9FF", width=5)
+    b += path("M0 186 H360 V240 H0 Z", "url(#floor)")
+    b += path("M18 112 H108", stroke="#4A3C90", width=6)
+    return svg(b, ROOM_DEFS, 360, 240)
+
+
+def room_bed():
+    b = ellipse(150, 230, 120, 8, "#000000", 0.25)
+    b += path("M40 204 V128 Q40 108 60 108 H230 Q250 108 250 128 V204 Z", "url(#wood)")
+    b += path("M145 120 C130 120 122 134 128 146 C116 142 112 126 124 118 C132 112 140 114 145 120 Z", "#FFD98A", op=0.8)
+    b += path("M52 196 V130 Q52 120 62 120 H228 Q238 120 238 130 V196 Z", "#000000", op=0.12)
+    b += ellipse(92, 160, 44, 18, "#EEF0FF") + ellipse(84, 154, 22, 6, WHITE, 0.7)
+    b += path("M44 222 V236 M246 222 V236", stroke="#2E2770", width=8)
+    return svg(b, ROOM_DEFS, 360, 240)
+
+
+def layer(body, defs=""):
+    return svg(body, defs, 360, 240)
+
+
+def quilt(top, bottom, fold, motif):
+    defs = lin("q", 145, 160, 145, 224, [(0, top, 1), (1, bottom, 1)])
+    b = path(QUILT_SHAPE, "url(#q)") + path(QUILT_FOLD, fold, op=0.35) + motif
+    b += path("M28 200 Q145 190 262 200", stroke=WHITE, width=2, op=0.3)
+    return layer(b, defs)
+
+
+def moon_motif(x, y, c="#FFE6A8", op=0.7):
+    return path("M%s %s C%s %s %s %s %s %s C%s %s %s %s %s %s Z" % (x + 4, y - 5, x - 4, y - 6, x - 6, y + 4, x + 2, y + 6,
+                                                                 x - 2, y + 2, x - 2, y - 2, x + 4, y - 5), c, op=op)
+
+
+def decor_layers():
+    pts = [(150, 186), (190, 200), (230, 184), (176, 214), (70, 206)]
+    out = {}
+    out["quilt_moons"] = quilt("#9AA6F7", "#5A66CF", "#B4BEFF", "".join(moon_motif(x, y) for x, y in pts))
+    out["quilt_dawn"] = quilt("#FFC2D9", "#B88AE0", "#FFE3EE",
+                              "".join(circle(x, y, 4, WHITE, 0.6) + circle(x + 5, y + 1, 3, WHITE, 0.6) for x, y in pts))
+    out["quilt_forest"] = quilt("#8FD6A0", "#3E8A5C", "#C8F0CF",
+                                "".join(ellipse(x, y, 4, 8, "#E6FBE9", 0.65, rot=35) for x, y in pts))
+    out["quilt_stars"] = quilt("#3B4AA8", "#1B2160", "#5B6BD0", "".join(sparkle(x, y, 6, GOLD) for x, y in pts + [(120, 200), (210, 212)]))
+
+    def curtains(top, bottom, tie=None):
+        defs = lin("c", 0, 20, 0, 150, [(0, top, 1), (1, bottom, 1)])
+        b = path("M196 14 C206 60 200 110 214 150 L190 150 C184 104 184 50 186 14 Z", "url(#c)")
+        b += path("M334 14 C324 60 330 110 316 150 L340 150 C346 104 346 50 344 14 Z", "url(#c)")
+        b += path("M192 30 C196 70 194 110 200 146", stroke=WHITE, width=2, op=0.25)
+        if tie:
+            b += path("M190 100 Q200 106 210 100", stroke=tie, width=4) + path("M320 100 Q330 106 340 100", stroke=tie, width=4)
+        return layer(b, defs)
+
+    out["curtains_lilac"] = curtains("#B9A8FF", "#7B68D8")
+    out["curtains_velvet"] = curtains("#3A4AA8", "#1A2060", GOLD)
+    out["curtains_peach"] = curtains("#FFD3B8", "#F2A08A", "#D9785E")
+
+    def glowdef(c):
+        return rad("lg", 52, 92, 60, [(0, c, 0.55), (0.5, c, 0.15), (1, c, 0)])
+
+    out["lamp_classic"] = layer(circle(52, 92, 60, "url(#lg)") + path("M40 112 L44 94 H60 L64 112 Z", "#FFD98A")
+                                + path("M50 94 V84", stroke="#E7A94A", width=3), glowdef("#FFD98A"))
+    out["lamp_paper"] = layer(circle(52, 92, 64, "url(#lg)") + path("M52 66 V74", stroke="#8A6A3A", width=2)
+                              + ellipse(52, 92, 14, 18, "#FFB86B") + path("M40 92 H64 M42 84 H62 M42 100 H62", stroke="#E0883A", width=2, op=0.6)
+                              + path("M46 74 H58 M46 110 H58", stroke="#8A4A1A", width=4), glowdef("#FFB86B"))
+    out["lamp_fireflies"] = layer(circle(52, 92, 64, "url(#lg)") + path("M38 112 V86 Q38 80 44 80 H60 Q66 80 66 86 V112 Z", "#BFE9FF", op=0.35)
+                                  + path("M40 78 H64", stroke="#8A6A3A", width=5)
+                                  + "".join(circle(x, y, 2.5, "#F6FF8A") + circle(x, y, 6, "#F6FF8A", 0.3) for x, y in [(46, 100), (56, 92), (52, 106), (60, 102), (48, 90)]),
+                                  glowdef("#DFFF7A"))
+    pot = path("M80 112 L84 98 H100 L104 112 Z", "#5C6BC4")
+    out["plant_sprout"] = layer(pot + "".join(ellipse(x, y, 4, 9, "#7FD08A", rot=r) for x, y, r in [(86, 92, -30), (92, 88, 0), (98, 92, 30)]))
+    out["plant_fern"] = layer(pot + "".join('<g transform="rotate(%s 92 98)">%s</g>' % (r, ellipse(92, 78, 5, 20, "#5FBF77"))
+                                            for r in (-50, -25, 0, 25, 50)))
+    out["plant_mushrooms"] = layer(pot + circle(92, 92, 22, "#8FE3D4", 0.25)
+                                   + path("M86 98 V90", stroke="#E6FFF8", width=3) + path("M78 90 Q86 78 94 90 Z", "#8FE3D4")
+                                   + path("M98 98 V86", stroke="#E6FFF8", width=3) + path("M90 86 Q98 72 106 86 Z", "#B8F0E8")
+                                   + circle(84, 86, 1.5, WHITE) + circle(99, 80, 1.5, WHITE))
+    out["rug_moon"] = layer(ellipse(306, 214, 46, 13, "#8C7BE0") + ellipse(306, 214, 36, 9, "#A99CF0")
+                            + moon_motif(306, 214, "#FFE6A8", 0.9))
+    out["rug_cloud"] = layer("".join(ellipse(x, 214, 18, 10, "#DCE4FF") for x in (278, 298, 318, 336)) + ellipse(306, 218, 48, 8, "#C9D3FF"))
+    out["mobile_stars"] = layer(path("M120 0 V40 M150 0 V58 M180 0 V34", stroke="#C9B9FF", width=1.5, op=0.8)
+                                + path("M114 6 H186", stroke="#8C7BE0", width=3)
+                                + sparkle(120, 46, 9, GOLD) + sparkle(150, 64, 10, GOLD) + moon_motif(180, 40, GOLD, 1))
+    out["mobile_dreamcatcher"] = layer(path("M150 0 V20", stroke="#C9B9FF", width=1.5)
+                                       + '<circle cx="150" cy="40" r="20" fill="none" stroke="#E7C38A" stroke-width="3"/>'
+                                       + path("M134 30 L166 50 M166 30 L134 50 M150 20 V60 M130 40 H170", stroke="#E6E1FF", width=1, op=0.7)
+                                       + "".join(path("M%s 60 V76" % x, stroke="#C9B9FF", width=1) + ellipse(x, 82, 4, 9, "#B9A8FF") for x in (138, 150, 162)))
+    bulbs = ""
+    for i in range(11):
+        x = 6 + i * 17
+        y = 14 + 16 * math.sin(math.pi * i / 10)
+        c = ["#FFD98A", "#FF9EC4", "#8FE3D4", "#B9A8FF"][i % 4]
+        bulbs += circle(round(x, 1), round(y + 4, 1), 7, c, 0.3) + circle(round(x, 1), round(y + 4, 1), 3.5, c)
+    out["wall_garland"] = layer(path("M0 12 Q90 46 180 12", stroke="#4A3C90", width=2) + bulbs)
+    stars = [(28, 30), (52, 22), (74, 40), (96, 30), (40, 70), (70, 76), (100, 64), (140, 26), (160, 48)]
+    out["wall_constellations"] = layer(
+        path("M28 30 L52 22 L74 40 L96 30 M40 70 L70 76 L100 64 M140 26 L160 48", stroke="#8C9BFF", width=1.2, op=0.6)
+        + "".join(sparkle(x, y, 4, "#DDE2FF") for x, y in stars))
+    return out
+
+
+def opaline():
+    gd, b = glow("g", 128, 140, 116, "#B8F0E8", 0.5)
+    defs = gd + rad("pearl", 112, 118, 80, [(0, "#FFFFFF", 1), (0.55, "#E6DEFF", 1), (1, "#A9E6DD", 1)])
+    defs += lin("halo", 128, 30, 128, 130, [(0, "#FFF4D6", 0.9), (1, "#FFD98A", 0.2)])
+    b += ellipse(128, 222, 50, 8, "#000000", 0.16)
+    b += path("M60 120 C60 70 96 40 128 40 C160 40 196 70 196 120 C186 82 160 60 128 60 C96 60 70 82 60 120 Z", "url(#halo)")
+    b += circle(128, 146, 62, "url(#pearl)")
+    for (x, y, r) in [(108, 92, 5), (128, 86, 6), (148, 92, 5)]:
+        b += circle(x, y, r, "#FFFFFF") + circle(x - 1.5, y - 1.5, r * 0.4, "#E6DEFF")
+    b += ellipse(104, 122, 16, 8, WHITE, 0.8, rot=-30)
+    b += path("M92 170 Q128 190 164 170", stroke="#C8F2EC", width=3, op=0.6)
+    b += eyes_closed(128, 146, 22, ink="#4A3F7A")
+    b += blush(128, 164, 38, 9, 6, c="#FFB8D9", op=0.45) + smile(128, 164, 6, ink="#4A3F7A")
+    for (x, y, r) in [(44, 70, 9), (214, 64, 11), (40, 190, 7), (218, 196, 8)]:
+        b += sparkle(x, y, r, "#FFF4D6")
+    return svg(b, defs)
+
+
 ART = {
     "art_brumi_egg": brumi_egg(),
     "art_brumi_sprout": brumi_sprout(),
@@ -695,7 +836,12 @@ ART = {
     "art_solsticelle": solsticelle(),
     "art_meduzephyr": meduzephyr(),
     "art_room": room(),
+    "art_opaline": opaline(),
+    "art_room_back": room_back(),
+    "art_room_window": room_window(),
+    "art_room_bed": room_bed(),
 }
+ART.update({"art_decor_" + k: v for k, v in decor_layers().items()})
 
 if __name__ == "__main__":
     svg_dir = os.path.join(ROOT, "art", "svg")

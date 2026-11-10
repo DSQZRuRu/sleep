@@ -74,6 +74,9 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
         .map { com.somnia.domain.game.EventCalendar.active(LocalDate.now(Clock.zone()), it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    val room: StateFlow<com.somnia.data.repository.RoomState?> = c.gameRepository.room
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     fun setAlarmTonight(v: Boolean) { alarmTonight.value = v }
 
     fun setWakeTime(minutes: Int) {

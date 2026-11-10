@@ -124,8 +124,16 @@ object DreamCreatureCatalog {
             BonusKind.DEEP_SLEEP, "courtes"),
     )
 
+    /** Créatures rarissimes qui n'apparaissent que les nuits de pleine lune. */
+    val moonCreatures: List<DreamCreature> = listOf(
+        DreamCreature("opaline", "Opaline", SleepType.DEEP, Rarity.LEGENDARY,
+            "Une perle de lune vivante. Elle ne descend dans les rêves que les nuits de pleine lune.",
+            CreatureLook(0xFFEDE7FF, 0xFFFFFFFF, 0xFFB8F0E8, setOf(Feature.CROWN), 1f, 3),
+            BonusKind.HEALTHY_DURATION, "pleinelune"),
+    )
+
     /** Toutes les créatures, événements compris (pour le carnet et la résolution des ids). */
-    val everything: List<DreamCreature> get() = all + eventCreatures
+    val everything: List<DreamCreature> get() = all + eventCreatures + moonCreatures
 
     fun byId(id: String): DreamCreature? = everything.firstOrNull { it.id == id }
     fun ofType(type: SleepType): List<DreamCreature> = all.filter { it.type == type }

@@ -29,6 +29,10 @@ class ReminderReceiver : BroadcastReceiver() {
                         container.reminderScheduler.reschedule()
                     }
                     ACTION_WATCH_POLL -> onPoll(context, container)
+                    ACTION_WEEKLY -> {
+                        Notifications.post(context, Notifications.ID_WEEKLY, Notifications.weeklyRecap(context))
+                        container.reminderScheduler.reschedule()
+                    }
                 }
             } finally {
                 pending.finish()
@@ -88,6 +92,7 @@ class ReminderReceiver : BroadcastReceiver() {
         const val ACTION_BEDTIME = "com.somnia.reminders.BEDTIME"
         const val ACTION_WATCH_START = "com.somnia.reminders.WATCH_START"
         const val ACTION_WATCH_POLL = "com.somnia.reminders.WATCH_POLL"
+        const val ACTION_WEEKLY = "com.somnia.reminders.WEEKLY"
     }
 }
 

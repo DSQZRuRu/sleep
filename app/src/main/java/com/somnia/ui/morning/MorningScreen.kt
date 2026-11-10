@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -63,6 +64,7 @@ import com.somnia.ui.theme.SomniaColors
 import kotlinx.coroutines.delay
 
 /** Révélation animée des récompenses de la nuit, étape par étape. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
     val ui by vm.ui.collectAsStateWithLifecycle()
@@ -135,9 +137,26 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
             }
         }
 
+        if (ui.phoneNotOnBed) {
+            AnimatedVisibility(phase >= 2, enter = fadeIn()) {
+                SomniaCard(accent = SomniaColors.Awake) {
+                    SectionLabel("Téléphone sur le matelas ?")
+                    Text("Le capteur n'a presque rien senti de la nuit : le téléphone était sans doute posé à côté du lit. " +
+                        "Posez-le sur le matelas, près de l'oreiller, pour que les phases soient fiables.",
+                        style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                }
+            }
+        }
+
         if (rewards != null) {
             AnimatedVisibility(phase >= 2, enter = fadeIn() + slideInVertically { it / 3 }) {
                 DreamReveal(rewards)
+            }
+
+            if (rewards.expeditionSteps > 0 || rewards.fullMoon) {
+                AnimatedVisibility(phase >= 4, enter = fadeIn() + slideInVertically { it / 3 }) {
+                    ExpeditionReveal(rewards)
+                }
             }
 
             AnimatedVisibility(phase >= 3, enter = fadeIn()) {
@@ -234,6 +253,22 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
 
         AnimatedVisibility(phase >= 7 || rewards == null, enter = fadeIn()) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SomniaCard {
+                    SectionLabel("Hier, il y a eu…")
+                    androidx.compose.foundation.layout.FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        com.somnia.domain.sleep.SleepFactor.entries.forEach { f ->
+                            androidx.compose.material3.FilterChip(
+                                selected = f in ui.factors, onClick = { vm.toggleFactor(f) },
+                                label = { Text("${f.emoji} ${f.label}") },
+                            )
+                        }
+                    }
+                    Text("Après quelques semaines, l'onglet Conseils vous montrera ce qui aide VOTRE sommeil.",
+                        style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                }
                 Text("Comment vous sentez-vous ?", style = MaterialTheme.typography.titleMedium)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("😫", "😕", "😐", "🙂", "😄").forEachIndexed { i, emoji ->
@@ -323,5 +358,29 @@ private fun DreamReveal(rewards: com.somnia.data.repository.StoredRewards) {
                     style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
             }
         }
+    }
+}
+
+
+@Composable
+private fun ExpeditionReveal(rewards: com.somnia.data.repository.StoredRewards) {
+    var chapter by remember { mutableStateOf<com.somnia.domain.game.DreamRegion?>(null) }
+    SomniaCard(accent = SomniaColors.Gold) {
+        SectionLabel("Monde des rêves")
+        if (rewards.fullMoon) Text("◯ Nuit de pleine lune", style = MaterialTheme.typography.titleSmall, color = SomniaColors.Gold)
+        if (rewards.expeditionSteps > 0) Text("Expédition : Brumi a avancé de ${rewards.expeditionSteps} étape${if (rewards.expeditionSteps > 1) "s" else ""}",
+            style = MaterialTheme.typography.titleSmall)
+        rewards.regionsCompleted.forEach { r ->
+            Text("✦ ${r.name} explorée ! +${r.rewardStardust} ✦", color = androidx.compose.ui.graphics.Color(r.accent))
+            androidx.compose.material3.OutlinedButton(onClick = { chapter = r }, modifier = Modifier.fillMaxWidth()) { Text("Lire : ${r.chapterTitle}") }
+        }
+    }
+    chapter?.let { r ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { chapter = null },
+            title = { Text(r.chapterTitle) },
+            text = { Text(r.chapter) },
+            confirmButton = { androidx.compose.material3.TextButton(onClick = { chapter = null }) { Text("Fermer") } },
+        )
     }
 }

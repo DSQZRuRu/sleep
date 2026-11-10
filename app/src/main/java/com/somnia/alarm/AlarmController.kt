@@ -11,6 +11,7 @@ object AlarmController {
         var already = false
         TrackingState.update { already = it.ringing; it.copy(ringing = true) }
         if (already) return
+        com.somnia.sound.Soundscape.stop()
         SmartAlarmScheduler(context).cancel()
         if (Notifications.canPost(context)) {
             Notifications.post(context, Notifications.ID_ALARM, Notifications.alarm(context))

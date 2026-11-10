@@ -57,6 +57,13 @@ object CreatureProgression {
     fun bedSlots(playerLevel: Int): Int = 1 + (if (playerLevel >= 3) 1 else 0) + (if (playerLevel >= 6) 1 else 0)
     fun levelForSlot(slot: Int): Int = when (slot) { 0 -> 1; 1 -> 3; else -> 6 }
 
+    /** Forme visible d'une créature selon son niveau (évolution aux niveaux 5 et 10). */
+    fun formName(level: Int): String? = when {
+        level >= MAX_LEVEL -> "Forme astrale"
+        level >= 5 -> "Forme éveillée"
+        else -> null
+    }
+
     /** Bonus permanent de Brumi selon son stade (il dort toujours dans le lit). */
     fun companionPct(stage: CompanionStage): Int = when (stage) {
         CompanionStage.EGG -> 0
@@ -105,6 +112,7 @@ object DreamScoreCalculator {
         equipped: List<EquippedCreature>,
         companion: CompanionStage,
         event: SeasonalEvent?,
+        decor: List<DecorItem> = emptyList(),
     ): DreamScore {
         val base = night.score
         // Pas de vrai sommeil, pas de bonus.
@@ -130,6 +138,15 @@ object DreamScoreCalculator {
             }
         }
         synergyPct(equipped)?.let { (label, pct) -> lines += DreamLine(label, pct, slept) }
+        for (d in decor) {
+            val b = d.bonus ?: continue
+            if (b == BonusKind.STARDUST) {
+                dustLines += DreamLine("Décor : ${d.name}", d.bonusPct, slept)
+            } else {
+                val pct = if (b == BonusKind.STREAK) d.bonusPct * streak.coerceAtMost(7) / 7 else d.bonusPct
+                lines += DreamLine("Décor : ${d.name}", pct, slept && pct > 0 && conditionMet(b, night, previousScore))
+            }
+        }
 
         val total = (base * (1 + lines.filter { it.active }.sumOf { it.pct } / 100.0)).toInt()
         event?.let { dustLines += DreamLine("Événement : ${it.name}", ((it.stardustMultiplier - 1) * 100).toInt(), slept) }

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Généré par tools/art/svg2vd.py depuis art/svg : ne pas modifier à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp" android:height="240dp"
+    android:viewportWidth="360" android:viewportHeight="240">
+    <path android:pathData="M120 0 V40 M150 0 V58 M180 0 V34"
+          android:strokeColor="#CCC9B9FF"
+          android:strokeWidth="1.5"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M114 6 H186"
+          android:strokeColor="#FF8C7BE0"
+          android:strokeWidth="3"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M120,37 Q121.62,44.38 129,46 Q121.62,47.62 120,55 Q118.38,47.62 111,46 Q118.38,44.38 120,37 Z"
+          android:fillColor="#FFFFD98A" />
+    <path android:pathData="M150,54 Q151.8,62.2 160,64 Q151.8,65.8 150,74 Q148.2,65.8 140,64 Q148.2,62.2 150,54 Z"
+          android:fillColor="#FFFFD98A" />
+    <path android:pathData="M184 35 C176 34 174 44 182 46 C178 42 178 38 184 35 Z"
+          android:fillColor="#FFFFD98A" />
+</vector>

@@ -54,10 +54,18 @@ import com.somnia.ui.theme.SomniaColors
 import java.time.LocalTime
 
 @Composable
-fun HomeScreen(vm: HomeViewModel, onSettings: () -> Unit, onOpenTip: () -> Unit, onOpenJournal: () -> Unit) {
+fun HomeScreen(
+    vm: HomeViewModel,
+    onSettings: () -> Unit,
+    onOpenTip: () -> Unit,
+    onOpenJournal: () -> Unit,
+    onOpenRoom: () -> Unit,
+    onOpenRitual: () -> Unit,
+) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     val bed by vm.bed.collectAsStateWithLifecycle()
     val event by vm.event.collectAsStateWithLifecycle()
+    val room by vm.room.collectAsStateWithLifecycle()
     val context = LocalContext.current
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refreshUsageEstimate() }
 
@@ -82,12 +90,16 @@ fun HomeScreen(vm: HomeViewModel, onSettings: () -> Unit, onOpenTip: () -> Unit,
         }
 
         // La chambre : Brumi et les créatures installées dans le lit
-        RoomScene(ui.stage, ui.mood, bed, CreatureProgression.bedSlots(ui.level.level), onClick = onOpenJournal)
+        RoomScene(
+            ui.stage, ui.mood, bed, CreatureProgression.bedSlots(ui.level.level),
+            layout = room?.layout ?: com.somnia.domain.game.DecorCatalog.layout(emptyMap()),
+            onClick = onOpenRoom,
+        )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text("${greeting()} · ${ui.stage.label}", style = MaterialTheme.typography.titleMedium)
             Text(CompanionLogic.message(ui.mood), style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
             Text(
-                if (bed.isEmpty()) "Touchez le lit pour y installer une créature et gagner des bonus d'Éclat."
+                if (bed.isEmpty()) "Touchez la chambre pour la décorer, et installez des créatures depuis le Carnet."
                 else "Dans le lit : " + bed.joinToString(" · ") { "${it.creature.name} ${it.creature.bonus.symbol}+${it.bonusPct} %" },
                 style = MaterialTheme.typography.bodySmall, color = SomniaColors.Lavender,
             )
@@ -139,6 +151,19 @@ fun HomeScreen(vm: HomeViewModel, onSettings: () -> Unit, onOpenTip: () -> Unit,
                     Text("⚠ Autorisez les notifications et les alarmes exactes dans les réglages pour que le réveil sonne.",
                         style = MaterialTheme.typography.bodySmall, color = SomniaColors.Awake)
                 }
+            }
+        }
+
+        SomniaCard(Modifier.clickable(onClick = onOpenRitual), accent = SomniaColors.Teal) {
+            val moon = com.somnia.domain.sleep.MoonPhase.fraction(System.currentTimeMillis())
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    SectionLabel("Rituel du soir · 3 min")
+                    Text("Préparer la chambre, respirer avec Brumi, choisir un son d'endormissement.",
+                        style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                    Text("${com.somnia.domain.sleep.MoonPhase.name(moon)} ce soir", style = MaterialTheme.typography.labelSmall, color = SomniaColors.Gold)
+                }
+                Text("›", style = MaterialTheme.typography.headlineMedium, color = SomniaColors.Teal)
             }
         }
 

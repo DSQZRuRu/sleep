@@ -59,6 +59,7 @@ object CreatureArt {
         "petalune" to R.drawable.art_petalune,
         "solsticelle" to R.drawable.art_solsticelle,
         "meduzephyr" to R.drawable.art_meduzephyr,
+        "opaline" to R.drawable.art_opaline,
     )
 
     @DrawableRes fun forCreature(id: String): Int? = creatures[id]
@@ -76,12 +77,31 @@ private val SilhouetteFilter = ColorFilter.tint(Color(0xFF2A3157), BlendMode.Src
 
 /** Créature du rêve : illustration si elle existe, sinon dessin procédural. */
 @Composable
-fun CreatureView(creature: DreamCreature, modifier: Modifier = Modifier, animated: Boolean = true, silhouette: Boolean = false) {
+fun CreatureView(
+    creature: DreamCreature,
+    modifier: Modifier = Modifier,
+    animated: Boolean = true,
+    silhouette: Boolean = false,
+    level: Int = 1,
+) {
     val art = CreatureArt.forCreature(creature.id)
     if (art == null) {
         CreatureView(creature.look, modifier, animated, silhouette)
         return
     }
+    if (!silhouette && level >= 5) {
+        // Évolution : aura (niveau 5), puis couronne d'étoiles en orbite (niveau 10).
+        Box(modifier) {
+            EvolutionAura(creature, level, Modifier.fillMaxSize())
+            CreatureImage(art, creature, Modifier.fillMaxSize(), animated, false)
+        }
+        return
+    }
+    CreatureImage(art, creature, modifier, animated, silhouette)
+}
+
+@Composable
+private fun CreatureImage(@DrawableRes art: Int, creature: DreamCreature, modifier: Modifier, animated: Boolean, silhouette: Boolean) {
     val breath = if (animated) {
         val t by rememberInfiniteTransition(label = "breath").animateFloat(
             0f, 1f, infiniteRepeatable(tween(2400, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "t",
@@ -98,6 +118,36 @@ fun CreatureView(creature: DreamCreature, modifier: Modifier = Modifier, animate
         },
         colorFilter = if (silhouette) SilhouetteFilter else null,
     )
+}
+
+/** Halo d'évolution : couleur de la rareté, étoiles en orbite au niveau maximum. */
+@Composable
+private fun EvolutionAura(creature: DreamCreature, level: Int, modifier: Modifier) {
+    val spin by rememberInfiniteTransition(label = "aura").animateFloat(
+        0f, 360f, infiniteRepeatable(tween(9000, easing = androidx.compose.animation.core.LinearEasing)), label = "spin",
+    )
+    val color = Color(creature.look.glow)
+    val gold = Color(0xFFFFD98A)
+    val astral = level >= com.somnia.domain.game.CreatureProgression.MAX_LEVEL
+    androidx.compose.foundation.Canvas(modifier) {
+        val c = center
+        val r = size.minDimension * 0.42f
+        drawCircle(
+            androidx.compose.ui.graphics.Brush.radialGradient(
+                listOf((if (astral) gold else color).copy(alpha = 0.55f), Color.Transparent), c, r * 1.15f,
+            ), r * 1.15f, c,
+        )
+        drawCircle(
+            (if (astral) gold else color).copy(alpha = 0.7f), r, c,
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.minDimension * 0.012f),
+        )
+        val n = if (astral) 5 else 3
+        for (i in 0 until n) {
+            val a = Math.toRadians((spin + i * 360f / n).toDouble())
+            val p = androidx.compose.ui.geometry.Offset(c.x + (r * kotlin.math.cos(a)).toFloat(), c.y + (r * kotlin.math.sin(a)).toFloat())
+            drawCircle(if (astral) gold else Color.White, size.minDimension * (if (astral) 0.03f else 0.022f), p)
+        }
+    }
 }
 
 /** Brumi illustré : respiration, clignement des yeux, yeux fermés quand il est fatigué. */

@@ -57,7 +57,7 @@ fun nightTitle(s: SleepSessionEntity): String =
     "Nuit du " + java.time.LocalDate.ofEpochDay(Clock.nightDay(s.startTime)).format(dateFormat)
 
 @Composable
-fun HistoryScreen(vm: HistoryViewModel, onOpen: (Long) -> Unit) {
+fun HistoryScreen(vm: HistoryViewModel, onOpen: (Long) -> Unit, onOpenRecap: (Int) -> Unit) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -81,6 +81,10 @@ fun HistoryScreen(vm: HistoryViewModel, onOpen: (Long) -> Unit) {
                     StatItem("Score moyen", if (ui.avgScore > 0) "${ui.avgScore}" else "—", color = SomniaColors.Lavender)
                     StatItem("Régularité", ui.regularity?.let { "${it.score}" } ?: "—", color = SomniaColors.Teal)
                 }
+                com.somnia.ui.game.GameButton(
+                    "Bilan de la semaine", onClick = { onOpenRecap(ui.weekOffset) }, leading = "✦",
+                    height = 46.dp, color = SomniaColors.Teal, modifier = Modifier.fillMaxWidth(),
+                )
                 ui.regularity?.let { r ->
                     Text(
                         "Coucher moyen ${r.meanBed?.let(TimeMath::format) ?: "—"} (±${r.bedtimeSd} min) · " +
@@ -150,6 +154,10 @@ fun NightDetailScreen(vm: NightDetailViewModel, onBack: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
             }
         }
+        if (ui.phoneNotOnBed) Text(
+            "⚠ Presque aucun mouvement détecté : le téléphone n'était probablement pas sur le matelas, les phases sont peu fiables.",
+            style = MaterialTheme.typography.bodySmall, color = SomniaColors.Awake,
+        )
         ui.rewards?.takeIf { it.dreamScore > 0 }?.let { r ->
             SomniaCard {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

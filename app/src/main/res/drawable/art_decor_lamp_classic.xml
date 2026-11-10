@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Généré par tools/art/svg2vd.py depuis art/svg : ne pas modifier à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp" android:height="240dp"
+    android:viewportWidth="360" android:viewportHeight="240">
+    <path android:pathData="M-8,92 a60,60 0 1,0 120,0 a60,60 0 1,0 -120,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="52" android:centerY="92" android:gradientRadius="60">
+                <item android:offset="0" android:color="#8CFFD98A" />
+                <item android:offset="0.5" android:color="#26FFD98A" />
+                <item android:offset="1" android:color="#00FFD98A" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M40 112 L44 94 H60 L64 112 Z"
+          android:fillColor="#FFFFD98A" />
+    <path android:pathData="M50 94 V84"
+          android:strokeColor="#FFE7A94A"
+          android:strokeWidth="3"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+</vector>

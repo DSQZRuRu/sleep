@@ -35,6 +35,10 @@ data class SleepSessionEntity(
     val morningRating: Int? = null,
     val processed: Boolean = false,
     val rewardsSeen: Boolean = false,
+    /** Facteurs du quotidien notés le matin (ids séparés par des virgules). */
+    val factors: String = "",
+    /** Le rituel du soir a été fait dans les 2 h précédant le coucher. */
+    val ritualDone: Boolean = false,
 )
 
 @Entity(
@@ -89,6 +93,21 @@ data class GameStateEntity(
     val companionCare: Int = 0,
     val stardust: Int = 0,
     val bestDream: Int = 0,
+    val expeditionRegion: Int = 0,
+    val expeditionProgress: Int = 0,
+)
+
+@Entity(tableName = "decor_owned")
+data class DecorOwnedEntity(
+    @PrimaryKey val itemId: String,
+    val purchasedAt: Long,
+)
+
+/** Objet choisi pour chaque emplacement de la chambre. */
+@Entity(tableName = "room_layout")
+data class RoomLayoutEntity(
+    @PrimaryKey val slot: String,
+    val itemId: String,
 )
 
 /** Niveau d'une créature possédée et sa place dans le lit (0..2, null = au carnet). */
@@ -145,4 +164,8 @@ data class NightRewardEntity(
     val stardustGained: Int = 0,
     val duplicateStardust: Int = 0,
     val eventId: String? = null,
+    val expeditionSteps: Int = 0,
+    /** Régions terminées cette nuit (ids séparés par des virgules). */
+    val regionsCompleted: String = "",
+    val fullMoon: Boolean = false,
 )

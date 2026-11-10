@@ -3,6 +3,13 @@ package com.somnia.data.repository
 import android.content.Context
 import androidx.room.withTransaction
 import com.somnia.data.db.BadgeUnlockEntity
+import com.somnia.data.db.DecorOwnedEntity
+import com.somnia.data.db.RoomLayoutEntity
+import com.somnia.domain.game.DecorCatalog
+import com.somnia.domain.game.DecorItem
+import com.somnia.domain.game.DecorSlot
+import com.somnia.domain.game.DreamRegion
+import com.somnia.domain.game.Expedition
 import com.somnia.data.db.GameDao
 import com.somnia.data.db.SomniaDatabase
 import com.somnia.domain.game.CreatureProgression
@@ -49,8 +56,16 @@ data class StoredRewards(
     val stardustGained: Int,
     val duplicateStardust: Int,
     val event: SeasonalEvent?,
+    val expeditionSteps: Int = 0,
+    val regionsCompleted: List<DreamRegion> = emptyList(),
+    val fullMoon: Boolean = false,
 ) {
     val xpTotal get() = xpLines.sumOf { it.xp }
+}
+
+/** État de la chambre : objets possédés et disposition. */
+data class RoomState(val owned: Set<String>, val layout: Map<DecorSlot, DecorItem>) {
+    fun owns(item: DecorItem) = item.isDefault || item.id in owned
 }
 
 /** Créature possédée avec sa progression. */
@@ -95,6 +110,31 @@ class GameRepository(private val db: SomniaDatabase) {
         progress.mapNotNull { p ->
             DreamCreatureCatalog.byId(p.creatureId)?.let { OwnedCreature(it, p.level, p.slot, counts[p.creatureId] ?: 1) }
         }
+    }
+
+    val room: Flow<RoomState> = combine(dao.observeDecorOwned(), dao.observeLayout()) { owned, layout ->
+        RoomState(
+            owned.map { it.itemId }.toSet(),
+            DecorCatalog.layout(layout.mapNotNull { l -> runCatching { DecorSlot.valueOf(l.slot) }.getOrNull()?.let { it to l.itemId } }.toMap()),
+        )
+    }
+
+    suspend fun roomLayout(): Map<DecorSlot, DecorItem> = DecorCatalog.layout(
+        dao.layout().mapNotNull { l -> runCatching { DecorSlot.valueOf(l.slot) }.getOrNull()?.let { it to l.itemId } }.toMap()
+    )
+
+    /** Achète (si besoin) puis installe un objet. @return un message d'erreur, ou null. */
+    suspend fun buyAndPlace(itemId: String): String? = db.withTransaction {
+        val item = DecorCatalog.byId(itemId) ?: return@withTransaction "Objet inconnu"
+        val owned = item.isDefault || dao.decorOwned().any { it.itemId == itemId }
+        if (!owned) {
+            val state = dao.state() ?: GameStateEntity()
+            if (state.stardust < item.price) return@withTransaction "Il manque ${item.price - state.stardust} ✦"
+            dao.upsertState(state.copy(stardust = state.stardust - item.price))
+            dao.insertDecorOwned(DecorOwnedEntity(itemId, System.currentTimeMillis()))
+        }
+        dao.upsertLayout(RoomLayoutEntity(item.slot.name, itemId))
+        null
     }
 
     /** Installe une créature dans un emplacement du lit (celle qui l'occupait retourne au carnet). */
@@ -162,6 +202,9 @@ class GameRepository(private val db: SomniaDatabase) {
             stardustGained = stardustGained,
             duplicateStardust = duplicateStardust,
             event = EventCalendar.byId(eventId),
+            expeditionSteps = expeditionSteps,
+            regionsCompleted = regionsCompleted.split(",").mapNotNull { id -> Expedition.regions.firstOrNull { it.id == id } },
+            fullMoon = fullMoon,
         )
     }
 }

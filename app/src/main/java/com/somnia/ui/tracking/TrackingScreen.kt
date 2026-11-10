@@ -77,7 +77,9 @@ fun TrackingScreen(status: TrackingStatus, stage: CompanionStage) {
         Text("Vous pouvez éteindre l'écran.\nBrumi veille avec vous. Bonne nuit ✦",
             color = Color(0xFF8A90B4), style = MaterialTheme.typography.bodyMedium,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(24.dp))
+        com.somnia.sound.SoundscapePicker(dim = true)
+        Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = { confirm = true }, modifier = Modifier.fillMaxWidth()) {
             Text("Terminer la nuit", color = SomniaColors.Muted)
         }

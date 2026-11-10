@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Généré par tools/art/svg2vd.py depuis art/svg : ne pas modifier à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp" android:height="240dp"
+    android:viewportWidth="360" android:viewportHeight="240">
+    <path android:pathData="M150 0 V20"
+          android:strokeColor="#FFC9B9FF"
+          android:strokeWidth="1.5"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M130,40 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0 Z"
+          android:strokeColor="#FFE7C38A"
+          android:strokeWidth="3" />
+    <path android:pathData="M134 30 L166 50 M166 30 L134 50 M150 20 V60 M130 40 H170"
+          android:strokeColor="#B2E6E1FF"
+          android:strokeWidth="1"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M138 60 V76"
+          android:strokeColor="#FFC9B9FF"
+          android:strokeWidth="1"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M134,82 a4,9 0 1,0 8,0 a4,9 0 1,0 -8,0 Z"
+          android:fillColor="#FFB9A8FF" />
+    <path android:pathData="M150 60 V76"
+          android:strokeColor="#FFC9B9FF"
+          android:strokeWidth="1"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M146,82 a4,9 0 1,0 8,0 a4,9 0 1,0 -8,0 Z"
+          android:fillColor="#FFB9A8FF" />
+    <path android:pathData="M162 60 V76"
+          android:strokeColor="#FFC9B9FF"
+          android:strokeWidth="1"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+    <path android:pathData="M158,82 a4,9 0 1,0 8,0 a4,9 0 1,0 -8,0 Z"
+          android:fillColor="#FFB9A8FF" />
+</vector>

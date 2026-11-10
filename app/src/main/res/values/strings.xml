@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Somnia</string>
+    <string name="widget_description">Brumi, votre heure de coucher idéale et un bouton pour lancer la nuit.</string>
 </resources>

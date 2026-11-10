@@ -23,6 +23,9 @@ class ReminderScheduler(
     suspend fun reschedule() {
         val s = prefs.settings.value
         val p = profiles.get()
+        if (s.weeklyRecap && p.onboardingDone) setExact(nextSundayEvening(), REQ_WEEKLY, ReminderReceiver.ACTION_WEEKLY)
+        else cancel(REQ_WEEKLY, ReminderReceiver.ACTION_WEEKLY)
+
         if (!p.onboardingDone) {
             cancel(REQ_BEDTIME, ReminderReceiver.ACTION_BEDTIME)
             cancel(REQ_WATCH_START, ReminderReceiver.ACTION_WATCH_START)
@@ -50,6 +53,15 @@ class ReminderScheduler(
             cancel(REQ_WATCH_START, ReminderReceiver.ACTION_WATCH_START)
             stopWatch()
         }
+    }
+
+    /** Prochain dimanche à 19 h (heure locale). */
+    private fun nextSundayEvening(): Long {
+        val now = java.time.ZonedDateTime.now(com.somnia.data.repository.Clock.zone())
+        var t = now.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY))
+            .withHour(19).withMinute(0).withSecond(0).withNano(0)
+        if (!t.isAfter(now)) t = t.plusWeeks(1)
+        return t.toInstant().toEpochMilli()
     }
 
     fun startWatch(until: Long) {
@@ -87,6 +99,7 @@ class ReminderScheduler(
         private const val REQ_BEDTIME = 50
         private const val REQ_WATCH_START = 51
         private const val REQ_POLL = 52
+        private const val REQ_WEEKLY = 53
         const val WATCH_BEFORE_MIN = 30
         const val WATCH_DURATION_MS = 150 * 60_000L
         const val POLL_INTERVAL_MS = 2 * 60_000L

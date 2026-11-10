@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Généré par tools/art/svg2vd.py depuis art/svg : ne pas modifier à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp" android:height="240dp"
+    android:viewportWidth="360" android:viewportHeight="240">
+    <path android:pathData="M28 198 Q28 168 58 166 H232 Q262 168 262 198 V214 Q262 224 252 224 H38 Q28 224 28 214 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="145" android:startY="160" android:endX="145" android:endY="224">
+                <item android:offset="0" android:color="#FF3B4AA8" />
+                <item android:offset="1" android:color="#FF1B2160" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M28 198 Q28 168 58 166 H130 Q100 196 112 224 H38 Q28 224 28 214 Z"
+          android:fillColor="#595B6BD0" />
+    <path android:pathData="M150,180 Q151.08,184.92 156,186 Q151.08,187.08 150,192 Q148.92,187.08 144,186 Q148.92,184.92 150,180 Z"
+          android:fillColor="#FFFFD98A" />
+    <path android:pathData="M190,194 Q191.08,198.92 196,200 Q191.08,201.08 190,206 Q188.92,201.08 184,200 Q188.92,198.92 190,194 Z"
+          android:fillColor="#FFFFD98A" />
+    <path android:pathData="M230,178 Q231.08,182.92 236,184 Q231.08,185.08 230,190 Q228.92,185.08 224,184 Q228.92,182.92 230,178 Z"
+          android:fillColor="#FFFFD98A" />
+    <path android:pathData="M176,208 Q177.08,212.92 182,214 Q177.08,215.08 176,220 Q174.92,215.08 170,214 Q174.92,212.92 176,208 Z"
+          android:fillColor="#FFFFD98A" />
+    <path android:pathData="M70,200 Q71.08,204.92 76,206 Q71.08,207.08 70,212 Q68.92,207.08 64,206 Q68.92,204.92 70,200 Z"
+          android:fillColor="#FFFFD98A" />
+    <path android:pathData="M120,194 Q121.08,198.92 126,200 Q121.08,201.08 120,206 Q118.92,201.08 114,200 Q118.92,198.92 120,194 Z"
+          android:fillColor="#FFFFD98A" />
+    <path android:pathData="M210,206 Q211.08,210.92 216,212 Q211.08,213.08 210,218 Q208.92,213.08 204,212 Q208.92,210.92 210,206 Z"
+          android:fillColor="#FFFFD98A" />
+    <path android:pathData="M28 200 Q145 190 262 200"
+          android:strokeColor="#4CFFFFFF"
+          android:strokeWidth="2"
+          android:strokeLineCap="round"
+          android:strokeLineJoin="round" />
+</vector>
