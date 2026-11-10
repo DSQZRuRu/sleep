@@ -802,6 +802,48 @@ def opaline():
     return svg(b, defs)
 
 
+# ---------- Ambiances de la journée (fond de chambre et lumière) ----------
+def room_back_variant(wall_top, wall_bottom, sky_stops, celestial="", wall_dots="#3E4690", sky_stars=False):
+    defs = lin("wallv", 180, 0, 180, 200, [(0, wall_top, 1), (1, wall_bottom, 1)])
+    defs += lin("skyv", 265, 30, 265, 130, sky_stops)
+    b = path("M0 0 H360 V240 H0 Z", "url(#wallv)")
+    for (x, y) in [(20, 30), (70, 18), (120, 40), (160, 14), (30, 150), (190, 60), (180, 150), (340, 160), (110, 90), (345, 20)]:
+        b += sparkle(x, y, 3, wall_dots)
+    b += path("M216 128 V78 A49 49 0 0 1 314 78 V128 Z", "url(#skyv)")
+    b += celestial
+    if sky_stars:
+        for (x, y, r) in [(236, 60, 2.5), (300, 52, 2), (252, 74, 1.8)]:
+            b += sparkle(x, y, r * 1.6, WHITE, 0.7)
+    return svg(b, defs, 360, 240)
+
+
+def sun(x, y, r, core, glow_c, gid):
+    return (rad(gid, x, y, r * 3, [(0, glow_c, 0.7), (0.4, glow_c, 0.25), (1, glow_c, 0)]),
+            circle(x, y, r * 3, "url(#%s)" % gid) + circle(x, y, r, core))
+
+
+def ambience_layers():
+    out = {}
+    gd, g = sun(288, 62, 15, "#FFF2B0", "#FFE48A", "sund")
+    clouds = "".join(ellipse(x, y, rx, ry, WHITE, 0.85) for x, y, rx, ry in [(236, 96, 16, 6), (248, 92, 12, 6), (300, 108, 14, 5), (310, 104, 10, 5)])
+    day = room_back_variant("#3F4C93", "#5A66A8", [(0, "#7CC6F5", 1), (1, "#D4EFFF", 1)], g + clouds, "#6B78C0")
+    out["art_room_back_day"] = day.replace("<defs>", "<defs>" + gd, 1)
+    gd, g = sun(280, 122, 17, "#FFD27A", "#FF9E6B", "sunr")
+    dawn = room_back_variant("#33295E", "#574683", [(0, "#7B6BD6", 1), (0.55, "#F2A3B3", 1), (1, "#FFC48A", 1)], g, "#5A4A90", True)
+    out["art_room_back_dawn"] = dawn.replace("<defs>", "<defs>" + gd, 1)
+    gd, g = sun(246, 124, 16, "#FFB36B", "#FF7E5F", "suns")
+    dusk = room_back_variant("#241F55", "#40316B", [(0, "#2E2A78", 1), (0.5, "#9A5FA8", 1), (1, "#FF8A6B", 1)], g, "#4A3E8A", True)
+    out["art_room_back_dusk"] = dusk.replace("<defs>", "<defs>" + gd, 1)
+    # Rayons de lumière à travers la fenêtre (jour : blanc chaud ; aube/crépuscule : orangé).
+    for name, c, a in (("art_room_light_day", "#FFF4D6", 0.16), ("art_room_light_warm", "#FFB38A", 0.14)):
+        defs = lin("beam", 265, 128, 200, 240, [(0, c, a * 1.6), (1, c, 0)])
+        defs += rad("wash", 265, 80, 170, [(0, c, a), (1, c, 0)])
+        b = circle(265, 80, 170, "url(#wash)")
+        b += path("M216 128 L314 128 L270 240 L110 240 Z", "url(#beam)")
+        out[name] = svg(b, defs, 360, 240)
+    return out
+
+
 ART = {
     "art_brumi_egg": brumi_egg(),
     "art_brumi_sprout": brumi_sprout(),
@@ -842,6 +884,7 @@ ART = {
     "art_room_bed": room_bed(),
 }
 ART.update({"art_decor_" + k: v for k, v in decor_layers().items()})
+ART.update(ambience_layers())
 
 if __name__ == "__main__":
     svg_dir = os.path.join(ROOT, "art", "svg")

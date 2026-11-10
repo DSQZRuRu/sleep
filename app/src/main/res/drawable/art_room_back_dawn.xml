@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Généré par tools/art/svg2vd.py depuis art/svg : ne pas modifier à la main. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp" android:height="240dp"
+    android:viewportWidth="360" android:viewportHeight="240">
+    <path android:pathData="M0 0 H360 V240 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="180" android:startY="0" android:endX="180" android:endY="200">
+                <item android:offset="0" android:color="#FF33295E" />
+                <item android:offset="1" android:color="#FF574683" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M20,27 Q20.54,29.46 23,30 Q20.54,30.54 20,33 Q19.46,30.54 17,30 Q19.46,29.46 20,27 Z"
+          android:fillColor="#FF5A4A90" />
+    <path android:pathData="M70,15 Q70.54,17.46 73,18 Q70.54,18.54 70,21 Q69.46,18.54 67,18 Q69.46,17.46 70,15 Z"
+          android:fillColor="#FF5A4A90" />
+    <path android:pathData="M120,37 Q120.54,39.46 123,40 Q120.54,40.54 120,43 Q119.46,40.54 117,40 Q119.46,39.46 120,37 Z"
+          android:fillColor="#FF5A4A90" />
+    <path android:pathData="M160,11 Q160.54,13.46 163,14 Q160.54,14.54 160,17 Q159.46,14.54 157,14 Q159.46,13.46 160,11 Z"
+          android:fillColor="#FF5A4A90" />
+    <path android:pathData="M30,147 Q30.54,149.46 33,150 Q30.54,150.54 30,153 Q29.46,150.54 27,150 Q29.46,149.46 30,147 Z"
+          android:fillColor="#FF5A4A90" />
+    <path android:pathData="M190,57 Q190.54,59.46 193,60 Q190.54,60.54 190,63 Q189.46,60.54 187,60 Q189.46,59.46 190,57 Z"
+          android:fillColor="#FF5A4A90" />
+    <path android:pathData="M180,147 Q180.54,149.46 183,150 Q180.54,150.54 180,153 Q179.46,150.54 177,150 Q179.46,149.46 180,147 Z"
+          android:fillColor="#FF5A4A90" />
+    <path android:pathData="M340,157 Q340.54,159.46 343,160 Q340.54,160.54 340,163 Q339.46,160.54 337,160 Q339.46,159.46 340,157 Z"
+          android:fillColor="#FF5A4A90" />
+    <path android:pathData="M110,87 Q110.54,89.46 113,90 Q110.54,90.54 110,93 Q109.46,90.54 107,90 Q109.46,89.46 110,87 Z"
+          android:fillColor="#FF5A4A90" />
+    <path android:pathData="M345,17 Q345.54,19.46 348,20 Q345.54,20.54 345,23 Q344.46,20.54 342,20 Q344.46,19.46 345,17 Z"
+          android:fillColor="#FF5A4A90" />
+    <path android:pathData="M216 128 V78 A49 49 0 0 1 314 78 V128 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="265" android:startY="30" android:endX="265" android:endY="130">
+                <item android:offset="0" android:color="#FF7B6BD6" />
+                <item android:offset="0.55" android:color="#FFF2A3B3" />
+                <item android:offset="1" android:color="#FFFFC48A" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M229,122 a51,51 0 1,0 102,0 a51,51 0 1,0 -102,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="radial" android:centerX="280" android:centerY="122" android:gradientRadius="51">
+                <item android:offset="0" android:color="#B2FF9E6B" />
+                <item android:offset="0.4" android:color="#40FF9E6B" />
+                <item android:offset="1" android:color="#00FF9E6B" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M263,122 a17,17 0 1,0 34,0 a17,17 0 1,0 -34,0 Z"
+          android:fillColor="#FFFFD27A" />
+    <path android:pathData="M236,56.0 Q236.72,59.28 240.0,60 Q236.72,60.72 236,64.0 Q235.28,60.72 232.0,60 Q235.28,59.28 236,56.0 Z"
+          android:fillColor="#B2FFFFFF" />
+    <path android:pathData="M300,48.8 Q300.576,51.424 303.2,52 Q300.576,52.576 300,55.2 Q299.424,52.576 296.8,52 Q299.424,51.424 300,48.8 Z"
+          android:fillColor="#B2FFFFFF" />
+    <path android:pathData="M252,71.12 Q252.5184,73.4816 254.88,74 Q252.5184,74.5184 252,76.88 Q251.4816,74.5184 249.12,74 Q251.4816,73.4816 252,71.12 Z"
+          android:fillColor="#B2FFFFFF" />
+</vector>

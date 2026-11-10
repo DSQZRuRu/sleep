@@ -16,7 +16,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.alpha
+import com.somnia.data.repository.Clock
+import com.somnia.domain.sleep.DayCycle
+import com.somnia.domain.sleep.DayPhase
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -109,10 +118,24 @@ fun RoomScene(
     slotsUnlocked: Int,
     modifier: Modifier = Modifier,
     layout: Map<DecorSlot, DecorItem> = DecorCatalog.layout(emptyMap()),
+    wakeMin: Int = 7 * 60,
+    bedMin: Int = 23 * 60,
     onClick: (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(28.dp)
-    val moon = remember { MoonPhase.fraction(System.currentTimeMillis()) }
+    // Horloge de la scène, rafraîchie chaque minute pour faire glisser le ciel.
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) { delay(60_000L - now % 60_000L); now = System.currentTimeMillis() }
+    }
+    val moon = MoonPhase.fraction(now)
+    val w8 = DayCycle.weights(Clock.minuteOfDay(now), wakeMin, bedMin)
+    val day = w8.getValue(DayPhase.DAY)
+    val dawn = w8.getValue(DayPhase.DAWN)
+    val dusk = w8.getValue(DayPhase.DUSK)
+    val night = w8.getValue(DayPhase.NIGHT)
+    // Brumi vit au même rythme : endormi la nuit, éveillé le reste du temps (sauf s'il est fatigué).
+    val sceneMood = if (night >= 0.5f) CompanionMood.SLEEPY else mood
     BoxWithConstraints(
         modifier.fillMaxWidth().aspectRatio(360f / 240f).clip(shape)
             .border(1.5.dp, Brush.verticalGradient(listOf(SomniaColors.Lavender.copy(alpha = 0.7f), Color.Transparent)), shape)
@@ -122,7 +145,13 @@ fun RoomScene(
         val h = maxHeight
         RoomLayer(R.drawable.art_room_back)
         val moonSize = w * 0.16f
-        MoonView(moon, Modifier.size(moonSize).offset(x = w * (290f / 360f) - moonSize / 2, y = h * (58f / 240f) - moonSize / 2))
+        if (night + dusk * 0.4f > 0.01f) {
+            MoonView(moon, Modifier.size(moonSize).offset(x = w * (290f / 360f) - moonSize / 2, y = h * (58f / 240f) - moonSize / 2)
+                .alpha((night + dusk * 0.4f).coerceIn(0f, 1f)))
+        }
+        RoomLayer(R.drawable.art_room_back_dusk, dusk)
+        RoomLayer(R.drawable.art_room_back_dawn, dawn)
+        RoomLayer(R.drawable.art_room_back_day, day)
         RoomLayer(R.drawable.art_room_window)
         for (slot in listOf(DecorSlot.WALL, DecorSlot.CURTAINS, DecorSlot.RUG, DecorSlot.LAMP, DecorSlot.PLANT)) {
             RoomLayer(layout[slot]?.let { DecorArt.layer(it.id) })
@@ -130,10 +159,12 @@ fun RoomScene(
         RoomLayer(R.drawable.art_room_bed)
         RoomLayer(layout[DecorSlot.QUILT]?.let { DecorArt.layer(it.id) })
         RoomLayer(layout[DecorSlot.MOBILE]?.let { DecorArt.layer(it.id) })
+        RoomLayer(R.drawable.art_room_light_day, day)
+        RoomLayer(R.drawable.art_room_light_warm, dawn + dusk)
 
         // L'illustration pose ses personnages à ~87 % de sa hauteur : on aligne ce point sur l'oreiller.
         val brumiSize = w * 0.19f
-        CompanionView(stage, mood, Modifier.size(brumiSize).offset(x = w * 0.255f - brumiSize / 2, y = h * 0.67f - brumiSize * 0.87f))
+        CompanionView(stage, sceneMood, Modifier.size(brumiSize).offset(x = w * 0.255f - brumiSize / 2, y = h * 0.67f - brumiSize * 0.87f))
 
         val slotX = listOf(0.47f, 0.60f, 0.73f)
         val cSize = w * 0.14f
@@ -152,6 +183,8 @@ fun RoomScene(
 }
 
 @Composable
-private fun RoomLayer(@DrawableRes res: Int?) {
-    if (res != null) Image(painterResource(res), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
+private fun RoomLayer(@DrawableRes res: Int?, alpha: Float = 1f) {
+    if (res != null && alpha > 0.01f) {
+        Image(painterResource(res), null, Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds, alpha = alpha.coerceIn(0f, 1f))
+    }
 }

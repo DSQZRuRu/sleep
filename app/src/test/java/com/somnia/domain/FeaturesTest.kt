@@ -87,3 +87,30 @@ class FeaturesTest {
         assertTrue(short.xpLines.none { it.label == "Rituel du soir" })
     }
 }
+
+class DayCycleTest {
+    private val wake = 7 * 60
+    private val bed = 23 * 60
+
+    @Test
+    fun phasesFollowPersonalSchedule() {
+        assertEquals(com.somnia.domain.sleep.DayPhase.NIGHT, com.somnia.domain.sleep.DayCycle.phase(3 * 60, wake, bed))
+        assertEquals(com.somnia.domain.sleep.DayPhase.DAWN, com.somnia.domain.sleep.DayCycle.phase(7 * 60, wake, bed))
+        assertEquals(com.somnia.domain.sleep.DayPhase.DAY, com.somnia.domain.sleep.DayCycle.phase(14 * 60, wake, bed))
+        assertEquals(com.somnia.domain.sleep.DayPhase.DUSK, com.somnia.domain.sleep.DayCycle.phase(21 * 60, wake, bed))
+        // Coucher idéal à 0 h 30 : à 23 h c'est encore le crépuscule.
+        assertEquals(com.somnia.domain.sleep.DayPhase.DUSK, com.somnia.domain.sleep.DayCycle.phase(23 * 60, wake, 30))
+    }
+
+    @Test
+    fun weightsBlendAroundBoundaries() {
+        val mid = com.somnia.domain.sleep.DayCycle.weights(20 * 60, wake, bed) // changement jour → crépuscule à 20 h
+        assertEquals(0.5f, mid.getValue(com.somnia.domain.sleep.DayPhase.DAY), 0.01f)
+        assertEquals(0.5f, mid.getValue(com.somnia.domain.sleep.DayPhase.DUSK), 0.01f)
+        val noon = com.somnia.domain.sleep.DayCycle.weights(12 * 60, wake, bed)
+        assertEquals(1f, noon.getValue(com.somnia.domain.sleep.DayPhase.DAY), 0.001f)
+        for (m in 0 until 1440 step 7) {
+            assertEquals(1f, com.somnia.domain.sleep.DayCycle.weights(m, wake, bed).values.sum(), 0.001f)
+        }
+    }
+}

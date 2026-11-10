@@ -67,9 +67,10 @@ fun RoomScreen(vm: RoomViewModel, onBack: () -> Unit, onManageBed: () -> Unit) {
             Text("Ma chambre", Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium)
             ResourceChip("✦", "${ui.stardust}", SomniaColors.Gold)
         }
-        RoomScene(ui.stage, ui.mood, ui.bed, ui.slotsUnlocked, layout = layout)
+        RoomScene(ui.stage, ui.mood, ui.bed, ui.slotsUnlocked, layout = layout, wakeMin = ui.wakeMin, bedMin = ui.bedMin)
+        val phase = com.somnia.domain.sleep.DayCycle.phase(com.somnia.data.repository.Clock.minuteOfDay(now), ui.wakeMin, ui.bedMin)
         Text(
-            "${MoonPhase.name(moon)} ce soir" + (MoonPhase.daysToFullMoon(now).let { d ->
+            "${phase.label} dans la chambre · ${MoonPhase.name(moon)} ce soir" + (MoonPhase.daysToFullMoon(now).let { d ->
                 if (d == 0) " · Opaline pourrait vous rendre visite !" else " · pleine lune dans $d jour${if (d > 1) "s" else ""}"
             }),
             style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,

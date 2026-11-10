@@ -28,13 +28,17 @@ data class RoomUi(
     val stage: CompanionStage = CompanionStage.EGG,
     val mood: CompanionMood = CompanionMood.CALM,
     val bed: List<OwnedCreature> = emptyList(),
+    val wakeMin: Int = 7 * 60,
+    val bedMin: Int = 23 * 60,
 )
 
 class RoomViewModel(private val c: AppContainer) : ViewModel() {
     val ui: StateFlow<RoomUi> = combine(
-        c.gameRepository.room, c.gameRepository.state, c.gameRepository.owned, c.sleepRepository.history,
-    ) { room, game, owned, history ->
+        c.gameRepository.room, c.gameRepository.state, c.gameRepository.owned, c.sleepRepository.history, c.profileRepository.profile,
+    ) { room, game, owned, history, profile ->
         RoomUi(
+            wakeMin = profile.targetWakeMin,
+            bedMin = com.somnia.data.repository.ProfileRepository.idealBedtime(profile),
             room = room,
             stardust = game.stardust,
             slotsUnlocked = CreatureProgression.bedSlots(XpCalculator.levelFor(game.totalXp).level),

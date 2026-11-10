@@ -93,6 +93,8 @@ fun HomeScreen(
         RoomScene(
             ui.stage, ui.mood, bed, CreatureProgression.bedSlots(ui.level.level),
             layout = room?.layout ?: com.somnia.domain.game.DecorCatalog.layout(emptyMap()),
+            wakeMin = ui.profile.targetWakeMin,
+            bedMin = ui.idealBed,
             onClick = onOpenRoom,
         )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
