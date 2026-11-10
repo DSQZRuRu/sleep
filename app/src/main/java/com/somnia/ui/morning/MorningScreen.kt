@@ -94,7 +94,7 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
         phase = 4; delay(400)
         phase = 5; delay(rewards?.creatures?.size?.times(350L) ?: 0L)
         phase = 6
-        if (rewards != null && (rewards.levelAfter > rewards.levelBefore || rewards.stageAfter != rewards.stageBefore || rewards.newBadges.isNotEmpty())) burst++
+        if (rewards != null && (rewards.levelAfter > rewards.levelBefore || rewards.stageAfter != rewards.stageBefore || rewards.badges.isNotEmpty())) burst++
         delay(400)
         phase = 7
     }
