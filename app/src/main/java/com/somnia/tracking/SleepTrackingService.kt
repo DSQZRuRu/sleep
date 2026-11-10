@@ -50,6 +50,7 @@ class SleepTrackingService : LifecycleService() {
     private val motionHistory = ArrayList<Float>()
     private var stopping = false
     private var started = false
+    private var napMode: Int? = null
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -70,14 +71,17 @@ class SleepTrackingService : LifecycleService() {
             ACTION_START, null -> {
                 val requestedAlarm = intent?.getLongExtra(EXTRA_ALARM_AT, -1L)?.takeIf { it > 0 }
                 val defaultAlarm = intent?.getBooleanExtra(EXTRA_DEFAULT_ALARM, false) ?: false
-                startTracking(requestedAlarm, resume = intent == null, defaultAlarm = defaultAlarm)
+                val nap = intent?.getIntExtra(EXTRA_NAP_MIN, 0)?.takeIf { it > 0 }
+                startTracking(requestedAlarm, resume = intent == null, defaultAlarm = defaultAlarm, napMin = nap)
             }
         }
         return START_STICKY
     }
 
-    private fun startTracking(requestedAlarmArg: Long?, resume: Boolean, defaultAlarm: Boolean = false) {
+    private fun startTracking(requestedAlarmArg: Long?, resume: Boolean, defaultAlarm: Boolean = false, napMin: Int? = null) {
         var requestedAlarm = requestedAlarmArg
+        if (napMin != null) requestedAlarm = System.currentTimeMillis() + napMin * 60_000L
+        napMode = napMin
         if (started) return
         started = true
         // Notification immédiate (exigence des services de premier plan), affinée ensuite.
@@ -98,8 +102,10 @@ class SleepTrackingService : LifecycleService() {
                 alarmTarget = requestedAlarm,
                 targetBed = ProfileRepository.idealBedtime(profile),
                 targetWake = profile.targetWakeMin,
-                ritualDone = container.reminderPrefs.ritualRecent(),
+                ritualDone = napMin == null && container.reminderPrefs.ritualRecent(),
+                isNap = napMin != null,
             )
+            if (open != null && open.isNap) napMode = napMode ?: ((open.alarmTargetTime ?: open.startTime) - open.startTime).div(60_000L).toInt()
             sessionId = id
             alarmAt = open?.alarmTargetTime ?: requestedAlarm
             smartEnabled = profile.smartAlarmEnabled
@@ -115,7 +121,7 @@ class SleepTrackingService : LifecycleService() {
             TrackingState.set(
                 TrackingStatus(
                     running = true, sessionId = id, startedAt = open?.startTime ?: System.currentTimeMillis(),
-                    alarmAt = alarmAt, micActive = micActive,
+                    alarmAt = alarmAt, micActive = micActive, napMinutes = napMode,
                 )
             )
             tickerJob = launch { tickLoop(id, micActive) }
@@ -160,6 +166,15 @@ class SleepTrackingService : LifecycleService() {
             ring(id)
             return
         }
+        if (napMode != null) {
+            // Sieste : on réveille avant que le sommeil profond ne s'installe (8 min d'immobilité totale).
+            val startedAt = TrackingState.status.value.startedAt ?: now
+            if (now - startedAt >= 12 * 60_000L) {
+                val last = container.sleepRepository.lastEpochs(id, 8)
+                if (last.size == 8 && last.all { it.motionCount <= SleepStageClassifier.STILL_THRESHOLD && !it.phoneUsed }) ring(id)
+            }
+            return
+        }
         if (!smartEnabled || now < target - smartWindowMs) return
         val recent = container.sleepRepository.lastEpochs(id, 3)
             .map { EpochInput(it.timestamp, it.motionCount, it.loudEvents, it.phoneUsed) }
@@ -191,8 +206,14 @@ class SleepTrackingService : LifecycleService() {
                 releaseWakeLock()
                 TrackingState.set(TrackingStatus())
                 if (processed != null) {
-                    Notifications.post(this@SleepTrackingService, Notifications.ID_NIGHT_READY, Notifications.nightReady(this@SleepTrackingService))
-                    container.backupManager.autoBackup(force = true)
+                    val session = container.sleepRepository.session(processed)
+                    if (session?.isNap == true) {
+                        Notifications.post(this@SleepTrackingService, Notifications.ID_NIGHT_READY,
+                            Notifications.napDone(this@SleepTrackingService, session.totalSleepMin))
+                    } else {
+                        Notifications.post(this@SleepTrackingService, Notifications.ID_NIGHT_READY, Notifications.nightReady(this@SleepTrackingService))
+                        container.backupManager.autoBackup(force = true)
+                    }
                 }
             }
             ServiceCompat.stopForeground(this@SleepTrackingService, ServiceCompat.STOP_FOREGROUND_REMOVE)
@@ -255,12 +276,21 @@ class SleepTrackingService : LifecycleService() {
         const val ACTION_STOP = "com.somnia.tracking.STOP"
         const val EXTRA_ALARM_AT = "alarm_at"
         const val EXTRA_DEFAULT_ALARM = "default_alarm"
+        const val EXTRA_NAP_MIN = "nap_min"
         private const val MAX_NIGHT_MS = 14 * 3_600_000L
 
         fun start(context: Context, alarmAt: Long?) {
             val intent = Intent(context, SleepTrackingService::class.java)
                 .setAction(ACTION_START)
                 .putExtra(EXTRA_ALARM_AT, alarmAt ?: -1L)
+            ContextCompat.startForegroundService(context, intent)
+        }
+
+        /** Sieste de [minutes] minutes, avec réveil avant le sommeil profond. */
+        fun startNap(context: Context, minutes: Int) {
+            val intent = Intent(context, SleepTrackingService::class.java)
+                .setAction(ACTION_START)
+                .putExtra(EXTRA_NAP_MIN, minutes)
             ContextCompat.startForegroundService(context, intent)
         }
 

@@ -146,6 +146,21 @@ class GameRepository(private val db: SomniaDatabase) {
         dao.setSlot(creatureId, slot)
     }
 
+    /** Poussière gagnée par les vraies nuits (base de la remise à zéro). */
+    suspend fun stardustFromNights(): Int = dao.stardustEarnedFromNights()
+
+    /**
+     * Outil développeur : annule les tests passés. Créatures au niveau 1, décor d'origine,
+     * poussière recalculée d'après les nuits. Les nuits, créatures rencontrées et badges sont conservés.
+     */
+    suspend fun resetTestProgress() = db.withTransaction {
+        dao.resetCreatureLevels()
+        dao.clearDecorOwned()
+        dao.clearLayout()
+        val state = dao.state() ?: GameStateEntity()
+        dao.upsertState(state.copy(stardust = dao.stardustEarnedFromNights()))
+    }
+
     /** Outil développeur. */
     suspend fun addStardust(amount: Int) = db.withTransaction {
         val state = dao.state() ?: GameStateEntity()

@@ -47,7 +47,7 @@ class NightProcessor(private val db: SomniaDatabase, private val activeEvent: ()
         val session = sleepDao.session(sessionId) ?: return@withTransaction null
         if (session.processed) return@withTransaction sessionId
         val epochs = sleepDao.epochs(sessionId)
-        if (epochs.size < MIN_EPOCHS) {
+        if (epochs.size < (if (session.isNap) MIN_NAP_EPOCHS else MIN_EPOCHS)) {
             sleepDao.deleteSession(sessionId)
             return@withTransaction null
         }
@@ -76,10 +76,36 @@ class NightProcessor(private val db: SomniaDatabase, private val activeEvent: ()
             snoreMinutes = epochs.count { it.snoreLike },
             processed = true,
         )
+        if (session.isNap) {
+            // Sieste : enregistrée pour mémoire, sans score de nuit, apprentissage ni récompenses.
+            sleepDao.updateSession(updated.copy(rewardsSeen = true))
+            return@withTransaction sessionId
+        }
         sleepDao.updateSession(updated)
         learnFromNight(analysis)
         grantRewards(updated)
         sessionId
+    }
+
+    /**
+     * Outil développeur : crée une nuit factice de 8 h se terminant maintenant, puis la traite
+     * comme une vraie nuit (l'écran du matin s'ouvre). À utiliser en mode test pour pouvoir l'annuler.
+     */
+    suspend fun simulateNight(): Long? {
+        val profile = profileDao.get() ?: com.somnia.data.db.ProfileEntity()
+        val end = System.currentTimeMillis()
+        val start = end - 8 * 3_600_000L
+        val id = sleepDao.insertSession(
+            SleepSessionEntity(
+                startTime = start,
+                targetBedMin = Clock.minuteOfDay(start),
+                targetWakeMin = profile.targetWakeMin,
+            )
+        )
+        com.somnia.domain.sleep.NightSimulator.generate(start, 480).forEach {
+            sleepDao.insertEpoch(com.somnia.data.db.EpochEntity(sessionId = id, timestamp = it.timestamp, motionCount = it.motionCount))
+        }
+        return finalizeSensorSession(id, end)
     }
 
     /** Nuit estimée à partir de l'usage du téléphone (détection de secours). */
@@ -230,5 +256,6 @@ class NightProcessor(private val db: SomniaDatabase, private val activeEvent: ()
     companion object {
         /** En dessous de 20 minutes, on considère la nuit comme annulée. */
         const val MIN_EPOCHS = 20
+        const val MIN_NAP_EPOCHS = 5
     }
 }

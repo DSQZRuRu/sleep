@@ -33,6 +33,33 @@ class BackupManager(private val context: Context, private val database: SomniaDa
 
     val lastBackupAt: Long get() = prefs.getLong("last_backup", 0L)
 
+    // ---------- Mode test (outil développeur) ----------
+    private val snapshotFile get() = File(context.filesDir, "test_snapshot.zip")
+
+    /** Un instantané de test existe : l'app est en « mode test ». */
+    val testModeActive: Boolean get() = snapshotFile.exists()
+
+    /** Photographie tout l'état actuel avant une session de test. */
+    suspend fun startTestMode() = withContext(Dispatchers.IO) {
+        snapshotFile.outputStream().use { export(it) }
+    }
+
+    /** Restaure l'instantané (l'app redémarre). @return une erreur, ou null. */
+    suspend fun endTestMode(): String? = withContext(Dispatchers.IO) {
+        val f = snapshotFile
+        if (!f.exists()) return@withContext "Aucun test en cours."
+        val copy = File(context.cacheDir, "snapshot_restore.zip")
+        f.copyTo(copy, overwrite = true)
+        f.delete()
+        // En cas de succès l'app redémarre ; en cas d'échec on remet l'instantané en place.
+        val error = copy.inputStream().use { restore(it) }
+        if (error != null) copy.copyTo(f, overwrite = true)
+        error
+    }
+
+    /** Abandonne le mode test en gardant l'état actuel. */
+    fun discardTestMode() { snapshotFile.delete() }
+
     /** Écrit une archive zip de toutes les données dans [out]. */
     suspend fun export(out: OutputStream) = withContext(Dispatchers.IO) {
         // Rapatrie le journal WAL dans le fichier principal pour une copie cohérente.
@@ -58,6 +85,7 @@ class BackupManager(private val context: Context, private val database: SomniaDa
      */
     suspend fun autoBackup(force: Boolean = false): Boolean = withContext(Dispatchers.IO) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return@withContext false
+        if (testModeActive) return@withContext false // ne pas écraser les vraies sauvegardes avec des données de test
         if (!force && System.currentTimeMillis() - lastBackupAt < 20 * 3_600_000L) return@withContext true
         runCatching {
             val resolver = context.contentResolver

@@ -54,6 +54,46 @@ class SettingsViewModel(private val c: AppContainer) : ViewModel() {
         }
     }
 
+    // ---------- Outils de test ----------
+    private val _testMode = kotlinx.coroutines.flow.MutableStateFlow(c.backupManager.testModeActive)
+    val testMode: StateFlow<Boolean> = _testMode
+    private val _devMessage = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    val devToolsMessage: StateFlow<String?> = _devMessage
+
+    fun startTestMode() {
+        viewModelScope.launch {
+            c.backupManager.startTestMode()
+            _testMode.value = true
+            _devMessage.value = "Mode test activé : tout ce que vous faites pourra être annulé."
+        }
+    }
+
+    /** Restaure l'état d'avant le test ; l'app redémarre. */
+    fun endTestMode() {
+        viewModelScope.launch { _devMessage.value = c.backupManager.endTestMode() }
+    }
+
+    fun keepTestChanges() {
+        c.backupManager.discardTestMode()
+        _testMode.value = false
+        _devMessage.value = "Mode test quitté en gardant les changements."
+    }
+
+    suspend fun stardustFromNights(): Int = c.gameRepository.stardustFromNights()
+
+    fun resetPastTests() {
+        viewModelScope.launch {
+            c.gameRepository.resetTestProgress()
+            _devMessage.value = "Créatures au niveau 1, décor d'origine, poussière recalculée ✓"
+        }
+    }
+
+    fun simulateNight() {
+        viewModelScope.launch {
+            _devMessage.value = if (c.nightProcessor.simulateNight() != null) "Nuit simulée : l'écran du matin va s'ouvrir." else "Échec de la simulation."
+        }
+    }
+
     fun redoQuestionnaire() = update { it.copy(onboardingDone = false) }
 
     /** Efface toutes les données locales (nuits, profil, progression). */

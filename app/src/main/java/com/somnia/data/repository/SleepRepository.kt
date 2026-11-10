@@ -16,13 +16,19 @@ class SleepRepository(private val dao: SleepDao) {
     suspend fun epochs(sessionId: Long) = dao.epochs(sessionId)
     suspend fun lastEpochs(sessionId: Long, limit: Int) = dao.lastEpochs(sessionId, limit).reversed()
 
-    suspend fun startSession(start: Long, micEnabled: Boolean, alarmTarget: Long?, targetBed: Int, targetWake: Int, ritualDone: Boolean = false): Long =
+    suspend fun startSession(
+        start: Long, micEnabled: Boolean, alarmTarget: Long?, targetBed: Int, targetWake: Int,
+        ritualDone: Boolean = false, isNap: Boolean = false,
+    ): Long =
         dao.insertSession(
             SleepSessionEntity(
                 startTime = start, micEnabled = micEnabled, alarmTargetTime = alarmTarget,
-                targetBedMin = targetBed, targetWakeMin = targetWake, ritualDone = ritualDone,
+                targetBedMin = targetBed, targetWakeMin = targetWake, ritualDone = ritualDone, isNap = isNap,
             )
         )
+
+    suspend fun setDreamNote(sessionId: Long, note: String) = dao.setDreamNote(sessionId, note.take(2000))
+    val naps = dao.observeNaps()
 
     suspend fun setFactors(sessionId: Long, factors: Set<com.somnia.domain.sleep.SleepFactor>) =
         dao.setFactors(sessionId, com.somnia.domain.sleep.SleepFactor.encode(factors))

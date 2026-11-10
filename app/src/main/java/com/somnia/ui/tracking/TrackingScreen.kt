@@ -70,7 +70,11 @@ fun TrackingScreen(status: TrackingStatus, stage: CompanionStage) {
             Text("Nuit commencée il y a ${TimeMath.formatDuration(((now - it) / 60_000L).toInt())}", color = Color(0xFF8A90B4))
         }
         status.alarmAt?.let {
-            Text("Réveil au plus tard à ${TimeMath.format(Clock.minuteOfDay(it))}", color = Color(0xFF8A90B4))
+            Text(
+                if (status.napMinutes != null) "Sieste de ${status.napMinutes} min · réveil au plus tard à ${TimeMath.format(Clock.minuteOfDay(it))}"
+                else "Réveil au plus tard à ${TimeMath.format(Clock.minuteOfDay(it))}",
+                color = Color(0xFF8A90B4),
+            )
         }
         if (status.micActive) Text("Niveau sonore analysé localement, sans enregistrement", style = MaterialTheme.typography.bodySmall, color = Color(0xFF6E7499))
         Spacer(Modifier.height(32.dp))
@@ -81,7 +85,7 @@ fun TrackingScreen(status: TrackingStatus, stage: CompanionStage) {
         com.somnia.sound.SoundscapePicker(dim = true)
         Spacer(Modifier.height(24.dp))
         OutlinedButton(onClick = { confirm = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Terminer la nuit", color = SomniaColors.Muted)
+            Text(if (status.napMinutes != null) "Terminer la sieste" else "Terminer la nuit", color = SomniaColors.Muted)
         }
     }
 

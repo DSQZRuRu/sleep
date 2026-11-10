@@ -179,6 +179,18 @@ fun HomeScreen(
         Text("Posez le téléphone sur le matelas, près de l'oreiller, puis éteignez l'écran. Branchez-le si possible.",
             style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
 
+        SomniaCard(accent = SomniaColors.Gold) {
+            SectionLabel("Sieste")
+            Text("Réveil avant le sommeil profond, pour éviter de se lever groggy. Les siestes ne comptent pas dans vos nuits.",
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                listOf(20, 30).forEach { m ->
+                    GameButton("$m min", onClick = { SleepTrackingService.startNap(context, m) }, color = SomniaColors.Gold,
+                        height = 44.dp, leading = "☀", modifier = Modifier.weight(1f))
+                }
+            }
+        }
+
         ui.lastNight?.let { n ->
             SomniaCard {
                 SectionLabel("Dernière nuit")

@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.platform.LocalContext
 import com.somnia.BuildConfig
+import kotlinx.coroutines.launch
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
@@ -126,6 +127,44 @@ fun SettingsScreen(vm: SettingsViewModel, updates: UpdateViewModel, onBack: () -
                 SmartAlarmScheduler(context).schedule(System.currentTimeMillis() + 10_000L)
                 devMessage = "Le réveil va sonner dans 10 secondes. Vous pouvez verrouiller l'écran."
             }, modifier = Modifier.fillMaxWidth()) { Text("Tester le réveil dans 10 s") }
+            SectionLabel("Mode test")
+            val testMode by vm.testMode.collectAsStateWithLifecycle()
+            val devToolsMsg by vm.devToolsMessage.collectAsStateWithLifecycle()
+            var confirmReset by remember { mutableStateOf<Int?>(null) }
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
+            Text(
+                if (testMode) "🧪 Test en cours : poussière ajoutée, achats, niveaux et nuits simulées seront annulés en quittant."
+                else "Activez le mode test avant d'essayer les outils ci-dessous : un bouton remettra ensuite tout comme avant.",
+                style = MaterialTheme.typography.bodySmall, color = if (testMode) SomniaColors.Gold else SomniaColors.Muted,
+            )
+            if (!testMode) {
+                OutlinedButton(onClick = vm::startTestMode, modifier = Modifier.fillMaxWidth()) { Text("Commencer un test") }
+            } else {
+                com.somnia.ui.game.GameButton("Terminer le test et tout restaurer", onClick = vm::endTestMode,
+                    color = SomniaColors.Gold, height = 48.dp, modifier = Modifier.fillMaxWidth())
+                TextButton(onClick = vm::keepTestChanges) { Text("Quitter le mode test en gardant les changements") }
+            }
+            OutlinedButton(onClick = vm::simulateNight, modifier = Modifier.fillMaxWidth()) { Text("Simuler une nuit de 8 h") }
+            OutlinedButton(
+                onClick = { scope.launch { confirmReset = vm.stardustFromNights() } },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Annuler mes tests passés") }
+            devToolsMsg?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = SomniaColors.Teal) }
+            confirmReset?.let { dust ->
+                AlertDialog(
+                    onDismissRequest = { confirmReset = null },
+                    title = { Text("Annuler les tests passés ?") },
+                    text = {
+                        Text("• Toutes les créatures reviennent au niveau 1\n" +
+                            "• Les meubles achetés sont retirés (décor d'origine)\n" +
+                            "• La poussière d'étoiles revient à ce que vos nuits ont rapporté : ✦ $dust\n\n" +
+                            "Vos nuits, créatures rencontrées, badges, XP et expédition sont conservés.")
+                    },
+                    confirmButton = { TextButton(onClick = { confirmReset = null; vm.resetPastTests() }) { Text("Annuler les tests") } },
+                    dismissButton = { TextButton(onClick = { confirmReset = null }) { Text("Retour") } },
+                )
+            }
+
             SectionLabel("Événement forcé (test)")
             val forced by vm.eventOverride.collectAsStateWithLifecycle()
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {

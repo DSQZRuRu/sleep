@@ -7,6 +7,7 @@ import com.somnia.data.db.SleepSessionEntity
 import com.somnia.data.repository.StoredRewards
 import com.somnia.domain.game.CompanionLogic
 import com.somnia.domain.game.CompanionMood
+import com.somnia.data.repository.toSummary
 import com.somnia.domain.sleep.FactorInsights
 import com.somnia.domain.sleep.SleepFactor
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,8 @@ data class MorningUi(
     val rating: Int? = null,
     val factors: Set<SleepFactor> = emptySet(),
     val phoneNotOnBed: Boolean = false,
+    val fragment: String? = null,
+    val dreamNote: String = "",
 )
 
 class MorningViewModel(private val c: AppContainer, private val sessionId: Long) : ViewModel() {
@@ -38,6 +41,10 @@ class MorningViewModel(private val c: AppContainer, private val sessionId: Long)
                 session, rewards, CompanionLogic.mood(recent), session?.morningRating,
                 factors = SleepFactor.parse(session?.factors.orEmpty()),
                 phoneNotOnBed = FactorInsights.phoneProbablyNotOnBed(motion),
+                fragment = session?.takeIf { it.totalSleepMin >= 180 }?.let {
+                    com.somnia.domain.game.DreamFragments.forNight(it.id, com.somnia.domain.game.RewardEngine.sleepType(it.toSummary()))
+                },
+                dreamNote = session?.dreamNote.orEmpty(),
             )
         }
     }
@@ -53,7 +60,13 @@ class MorningViewModel(private val c: AppContainer, private val sessionId: Long)
         viewModelScope.launch { c.sleepRepository.setFactors(sessionId, next) }
     }
 
+    fun setDreamNote(note: String) { _ui.value = _ui.value.copy(dreamNote = note) }
+
     fun done() {
-        viewModelScope.launch { c.sleepRepository.markRewardsSeen(sessionId) }
+        val note = _ui.value.dreamNote
+        viewModelScope.launch {
+            c.sleepRepository.setDreamNote(sessionId, note.trim())
+            c.sleepRepository.markRewardsSeen(sessionId)
+        }
     }
 }

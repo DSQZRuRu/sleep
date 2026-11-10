@@ -192,6 +192,15 @@ object Notifications {
             .setContentIntent(openAppIntent(context))
             .build()
 
+    fun napDone(context: Context, sleptMin: Int): Notification =
+        NotificationCompat.Builder(context, CHANNEL_INFO)
+            .setSmallIcon(R.drawable.ic_moon)
+            .setContentTitle("Sieste terminée ✦")
+            .setContentText(if (sleptMin > 0) "Environ $sleptMin min de sommeil léger : de quoi repartir en forme." else "Un moment de repos, c'est déjà bien.")
+            .setAutoCancel(true)
+            .setContentIntent(openAppIntent(context))
+            .build()
+
     fun canPost(context: Context): Boolean =
         (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) &&

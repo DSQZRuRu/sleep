@@ -13,6 +13,8 @@ data class TrackingStatus(
     val micActive: Boolean = false,
     val ringing: Boolean = false,
     val finishing: Boolean = false,
+    /** Durée choisie si c'est une sieste (null = nuit). */
+    val napMinutes: Int? = null,
 )
 
 /** État partagé en mémoire entre le service, l'alarme et l'interface. */

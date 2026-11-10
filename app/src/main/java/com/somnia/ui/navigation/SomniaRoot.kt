@@ -56,6 +56,7 @@ import com.somnia.ui.tracking.TrackingScreen
 import androidx.compose.runtime.LaunchedEffect
 import com.somnia.data.db.ProfileEntity
 import com.somnia.data.repository.NightPlanner
+import com.somnia.ui.dreams.DreamJournalScreen
 import com.somnia.ui.recap.RecapScreen
 import com.somnia.ui.recap.RecapViewModel
 import com.somnia.ui.ritual.RitualScreen
@@ -157,10 +158,15 @@ private fun MainNavigation(container: AppContainer) {
                     containerViewModel { HistoryViewModel(container) },
                     onOpen = { nav.navigate("night/$it") },
                     onOpenRecap = { weeks -> nav.navigate("recap/$weeks") },
+                    onOpenDreams = { nav.navigate("dreams") },
                 )
             }
             composable(Tab.JOURNAL.route) { JournalScreen(containerViewModel { JournalViewModel(container) }) }
             composable(Tab.TIPS.route) { TipsScreen(container.profileRepository.profile, container.sleepRepository.history) }
+            composable("dreams") {
+                DreamJournalScreen(container.sleepRepository.history, onBack = { nav.popBackStack() },
+                    onOpenNight = { nav.navigate("night/$it") })
+            }
             composable("room") {
                 RoomScreen(containerViewModel { RoomViewModel(container) }, onBack = { nav.popBackStack() },
                     onManageBed = { goToTab(Tab.JOURNAL) })

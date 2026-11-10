@@ -25,28 +25,34 @@ interface SleepDao {
     @Query("SELECT * FROM sleep_sessions WHERE endTime IS NULL ORDER BY startTime DESC LIMIT 1")
     suspend fun openSession(): SleepSessionEntity?
 
-    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 ORDER BY startTime DESC")
+    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND isNap = 0 ORDER BY startTime DESC")
     fun observeProcessedSessions(): Flow<List<SleepSessionEntity>>
 
-    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 ORDER BY startTime DESC LIMIT :limit")
+    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND isNap = 0 ORDER BY startTime DESC LIMIT :limit")
     suspend fun recentProcessed(limit: Int): List<SleepSessionEntity>
 
-    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND startTime >= :from ORDER BY startTime ASC")
+    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND isNap = 0 AND startTime >= :from ORDER BY startTime ASC")
     suspend fun processedSince(from: Long): List<SleepSessionEntity>
 
-    @Query("SELECT COUNT(*) FROM sleep_sessions WHERE processed = 1")
+    @Query("SELECT COUNT(*) FROM sleep_sessions WHERE processed = 1 AND isNap = 0")
     suspend fun processedCount(): Int
 
-    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND rewardsSeen = 0 ORDER BY startTime DESC LIMIT 1")
+    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND isNap = 0 AND rewardsSeen = 0 ORDER BY startTime DESC LIMIT 1")
     fun observePendingReveal(): Flow<SleepSessionEntity?>
 
-    @Query("SELECT * FROM sleep_sessions WHERE startTime BETWEEN :from AND :to LIMIT 1")
+    @Query("SELECT * FROM sleep_sessions WHERE isNap = 0 AND startTime BETWEEN :from AND :to LIMIT 1")
     suspend fun sessionStartedBetween(from: Long, to: Long): SleepSessionEntity?
+
+    @Query("UPDATE sleep_sessions SET dreamNote = :note WHERE id = :id")
+    suspend fun setDreamNote(id: Long, note: String)
+
+    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND isNap = 1 ORDER BY startTime DESC LIMIT 20")
+    fun observeNaps(): Flow<List<SleepSessionEntity>>
 
     @Query("UPDATE sleep_sessions SET factors = :factors WHERE id = :id")
     suspend fun setFactors(id: Long, factors: String)
 
-    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND startTime >= :from AND startTime < :to ORDER BY startTime ASC")
+    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND isNap = 0 AND startTime >= :from AND startTime < :to ORDER BY startTime ASC")
     suspend fun processedBetween(from: Long, to: Long): List<SleepSessionEntity>
 
     @Query("DELETE FROM sleep_sessions WHERE id = :id")
@@ -156,6 +162,20 @@ interface GameDao {
 
     @Upsert
     suspend fun upsertLayout(item: RoomLayoutEntity)
+
+    // ---------- Outils développeur ----------
+    @Query("UPDATE creature_progress SET level = 1")
+    suspend fun resetCreatureLevels()
+
+    @Query("DELETE FROM decor_owned")
+    suspend fun clearDecorOwned()
+
+    @Query("DELETE FROM room_layout")
+    suspend fun clearLayout()
+
+    /** Poussière réellement gagnée par les nuits enregistrées. */
+    @Query("SELECT COALESCE(SUM(stardustGained), 0) FROM night_rewards")
+    suspend fun stardustEarnedFromNights(): Int
 
     @Upsert
     suspend fun upsertReward(reward: NightRewardEntity)

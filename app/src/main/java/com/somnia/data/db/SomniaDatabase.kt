@@ -30,7 +30,7 @@ abstract class SomniaDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao
 
     companion object {
-        const val VERSION = 3
+        const val VERSION = 4
         const val NAME = "somnia.db"
 
         /** v2 : Éclat de rêve, poussière d'étoiles, niveaux et lit des créatures, événements. */
@@ -69,9 +69,17 @@ abstract class SomniaDatabase : RoomDatabase() {
             }
         }
 
+        /** v4 : journal de rêves, siestes. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sleep_sessions ADD COLUMN dreamNote TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE sleep_sessions ADD COLUMN isNap INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun create(context: Context): SomniaDatabase =
             Room.databaseBuilder(context, SomniaDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                 .build()
     }
 }

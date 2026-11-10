@@ -114,3 +114,21 @@ class DayCycleTest {
         }
     }
 }
+
+class SimulatorAndFragmentsTest {
+    @Test
+    fun simulatedNightLooksLikeARealNight() {
+        val epochs = com.somnia.domain.sleep.NightSimulator.generate(0L, 480, seed = 42)
+        val a = com.somnia.domain.sleep.SleepStageClassifier.classify(epochs)
+        assertTrue("sommeil ${a.totalSleepMin}", a.totalSleepMin in 400..470)
+        assertTrue("profond ${a.deepMin}", a.deepMin >= 60)
+        assertTrue(a.latencyMin in 5..30)
+    }
+
+    @Test
+    fun fragmentsAreStablePerNight() {
+        val f1 = com.somnia.domain.game.DreamFragments.forNight(12, com.somnia.domain.sleep.SleepType.DEEP)
+        assertEquals(f1, com.somnia.domain.game.DreamFragments.forNight(12, com.somnia.domain.sleep.SleepType.DEEP))
+        assertTrue(f1.isNotBlank())
+    }
+}

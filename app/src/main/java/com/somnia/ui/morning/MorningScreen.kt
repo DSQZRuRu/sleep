@@ -253,6 +253,21 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
 
         AnimatedVisibility(phase >= 7 || rewards == null, enter = fadeIn()) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                SomniaCard(accent = SomniaColors.Lavender) {
+                    SectionLabel("Journal des rêves")
+                    ui.fragment?.let {
+                        Text("« $it »", style = MaterialTheme.typography.bodyMedium, fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            color = SomniaColors.Lavender)
+                        Text("Fragment de rêve offert par les créatures de la nuit.", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                    }
+                    androidx.compose.material3.OutlinedTextField(
+                        value = ui.dreamNote,
+                        onValueChange = vm::setDreamNote,
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Votre rêve, en quelques mots (facultatif)") },
+                        minLines = 2,
+                    )
+                }
                 SomniaCard {
                     SectionLabel("Hier, il y a eu…")
                     androidx.compose.foundation.layout.FlowRow(

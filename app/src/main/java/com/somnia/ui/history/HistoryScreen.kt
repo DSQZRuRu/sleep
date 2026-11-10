@@ -57,7 +57,7 @@ fun nightTitle(s: SleepSessionEntity): String =
     "Nuit du " + java.time.LocalDate.ofEpochDay(Clock.nightDay(s.startTime)).format(dateFormat)
 
 @Composable
-fun HistoryScreen(vm: HistoryViewModel, onOpen: (Long) -> Unit, onOpenRecap: (Int) -> Unit) {
+fun HistoryScreen(vm: HistoryViewModel, onOpen: (Long) -> Unit, onOpenRecap: (Int) -> Unit, onOpenDreams: () -> Unit) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     LazyColumn(
         Modifier.fillMaxSize(),
@@ -81,10 +81,16 @@ fun HistoryScreen(vm: HistoryViewModel, onOpen: (Long) -> Unit, onOpenRecap: (In
                     StatItem("Score moyen", if (ui.avgScore > 0) "${ui.avgScore}" else "—", color = SomniaColors.Lavender)
                     StatItem("Régularité", ui.regularity?.let { "${it.score}" } ?: "—", color = SomniaColors.Teal)
                 }
-                com.somnia.ui.game.GameButton(
-                    "Bilan de la semaine", onClick = { onOpenRecap(ui.weekOffset) }, leading = "✦",
-                    height = 46.dp, color = SomniaColors.Teal, modifier = Modifier.fillMaxWidth(),
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    com.somnia.ui.game.GameButton(
+                        "Bilan", onClick = { onOpenRecap(ui.weekOffset) }, leading = "✦",
+                        height = 46.dp, color = SomniaColors.Teal, modifier = Modifier.weight(1f),
+                    )
+                    com.somnia.ui.game.GameButton(
+                        "Rêves", onClick = onOpenDreams, leading = "☾",
+                        height = 46.dp, color = SomniaColors.Lavender, modifier = Modifier.weight(1f),
+                    )
+                }
                 ui.regularity?.let { r ->
                     Text(
                         "Coucher moyen ${r.meanBed?.let(TimeMath::format) ?: "—"} (±${r.bedtimeSd} min) · " +

@@ -39,6 +39,10 @@ data class SleepSessionEntity(
     val factors: String = "",
     /** Le rituel du soir a été fait dans les 2 h précédant le coucher. */
     val ritualDone: Boolean = false,
+    /** Rêve noté par l'utilisateur au réveil. */
+    val dreamNote: String = "",
+    /** Sieste : exclue des statistiques et des récompenses de nuit. */
+    val isNap: Boolean = false,
 )
 
 @Entity(
