@@ -15,6 +15,8 @@ import com.somnia.domain.game.DecorSlot
 import com.somnia.domain.game.DreamCreatureCatalog
 import com.somnia.domain.game.ExpeditionState
 import com.somnia.domain.sleep.MoonPhase
+import com.somnia.domain.sleep.SleepGapFinder
+import com.somnia.domain.sleep.SleepStage
 import com.somnia.domain.game.EquippedCreature
 import com.somnia.domain.game.GameSnapshot
 import com.somnia.domain.game.SeasonalEvent
@@ -41,6 +43,8 @@ class NightProcessor(
     private val activeEvent: () -> SeasonalEvent? = { null },
     /** Jour où l'utilisateur a confirmé la lumière du matin (−1 si jamais). */
     private val morningLightDay: () -> Long = { -1L },
+    /** Sommeil probable avant le lancement du suivi, d'après l'usage du téléphone. */
+    private val sleepGapBefore: (Long) -> SleepGapFinder.Gap? = { null },
 ) {
 
     private val sleepDao = db.sleepDao()
@@ -48,7 +52,15 @@ class NightProcessor(
     private val profileDao = db.profileDao()
 
     /** @return l'id de la session traitée, ou null si la nuit était trop courte pour être gardée. */
-    suspend fun finalizeSensorSession(sessionId: Long, endTime: Long): Long? = db.withTransaction {
+    suspend fun finalizeSensorSession(sessionId: Long, endTime: Long, detectEarlierSleep: Boolean = true): Long? {
+        // Hors transaction : lecture de l'historique d'usage du téléphone.
+        val pre = sleepDao.session(sessionId)
+        val gap = if (detectEarlierSleep && pre != null && !pre.isNap && !pre.processed)
+            runCatching { sleepGapBefore(pre.startTime) }.getOrNull() else null
+        return finalizeInTransaction(sessionId, endTime, gap)
+    }
+
+    private suspend fun finalizeInTransaction(sessionId: Long, endTime: Long, gap: SleepGapFinder.Gap?): Long? = db.withTransaction {
         val session = sleepDao.session(sessionId) ?: return@withTransaction null
         if (session.processed) return@withTransaction sessionId
         val epochs = sleepDao.epochs(sessionId)
@@ -91,10 +103,70 @@ class NightProcessor(
             sleepDao.updateSession(updated.copy(rewardsSeen = true))
             return@withTransaction sessionId
         }
+        if (gap != null) {
+            // Sommeil probablement commencé avant le lancement : on demandera à l'utilisateur
+            // au réveil, et les récompenses attendront sa réponse.
+            sleepDao.updateSession(updated.copy(startCandidate = gap.asleepFrom))
+            return@withTransaction sessionId
+        }
         sleepDao.updateSession(updated)
         learnFromNight(analysis)
         grantRewards(updated)
         sessionId
+    }
+
+    /**
+     * Réponse à « Dormiez-vous déjà avant de lancer la nuit ? ».
+     * Oui : la nuit commence à l'heure probable d'endormissement ; cette partie, non mesurée par
+     * les capteurs, compte comme sommeil léger estimé, après le temps d'endormissement habituel.
+     * Le réveil pour lancer le suivi devient un réveil nocturne. Puis les récompenses sont attribuées.
+     */
+    suspend fun resolveStartCandidate(sessionId: Long, accept: Boolean) = db.withTransaction {
+        val s = sleepDao.session(sessionId) ?: return@withTransaction
+        val candidate = s.startCandidate ?: return@withTransaction
+        val prefixMin = ((s.startTime - candidate) / 60_000L).toInt()
+        if (!accept || prefixMin < 1) {
+            val kept = s.copy(startCandidate = null)
+            sleepDao.updateSession(kept)
+            grantRewards(kept)
+            return@withTransaction
+        }
+        val profile = profileDao.get() ?: com.somnia.data.db.ProfileEntity()
+        val latency = profile.latencyMin.coerceIn(5, 30).coerceAtMost(prefixMin)
+        for (i in 0 until prefixMin) {
+            sleepDao.insertEpoch(
+                com.somnia.data.db.EpochEntity(
+                    sessionId = sessionId, timestamp = candidate + i * 60_000L, motionCount = 0f,
+                    stage = if (i < latency) SleepStage.AWAKE.code else SleepStage.LIGHT.code,
+                )
+            )
+        }
+        val prefixSleep = prefixMin - latency
+        val realMinutes = sleepDao.epochs(sessionId).size - prefixMin
+        val total = s.totalSleepMin + prefixSleep
+        val awake = s.awakeMin + latency
+        val awakenings = s.awakenings + if (s.latencyMin > 0) 1 else 0
+        val efficiency = total.toFloat() / (prefixMin + realMinutes).coerceAtLeast(1)
+        val analysis = NightAnalysis(
+            stages = emptyList(), sleepOnsetIndex = latency, finalWakeIndex = null,
+            totalSleepMin = total, lightMin = s.lightMin + prefixSleep, deepMin = s.deepMin, awakeMin = awake,
+            latencyMin = latency, awakenings = awakenings, efficiency = efficiency, detectedCycles = 0,
+        )
+        val deviation = TimeMath.diff(Clock.minuteOfDay(candidate), s.targetBedMin)
+        val extended = s.copy(
+            startTime = candidate,
+            sleepOnset = candidate + latency * 60_000L,
+            totalSleepMin = total,
+            lightMin = s.lightMin + prefixSleep,
+            awakeMin = awake,
+            latencyMin = latency,
+            awakenings = awakenings,
+            efficiency = efficiency,
+            score = SleepScoreCalculator.score(analysis, deviation).total,
+            startCandidate = null,
+        )
+        sleepDao.updateSession(extended)
+        grantRewards(extended)
     }
 
     /**
@@ -115,7 +187,7 @@ class NightProcessor(
         com.somnia.domain.sleep.NightSimulator.generate(start, 480).forEach {
             sleepDao.insertEpoch(com.somnia.data.db.EpochEntity(sessionId = id, timestamp = it.timestamp, motionCount = it.motionCount))
         }
-        return finalizeSensorSession(id, end)
+        return finalizeSensorSession(id, end, detectEarlierSleep = false)
     }
 
     /** Nuit estimée à partir de l'usage du téléphone (détection de secours). */

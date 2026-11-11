@@ -30,6 +30,27 @@ class PhoneUsageDetector(private val context: Context) {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
+    /** Instants d'utilisation du téléphone entre [from] et [to] (vide sans autorisation). */
+    fun interactionsBetween(from: Long, to: Long): List<Long> {
+        if (!hasAccess() || to <= from) return emptyList()
+        val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val events = usm.queryEvents(from, to)
+        val out = mutableListOf<Long>()
+        val e = UsageEvents.Event()
+        while (events.hasNextEvent()) {
+            events.getNextEvent(e)
+            if (isInteraction(e.eventType)) out += e.timeStamp
+        }
+        return out
+    }
+
+    /** Sommeil probable avant le lancement du suivi (voir SleepGapFinder). */
+    fun sleepGapBefore(trackingStart: Long): com.somnia.domain.sleep.SleepGapFinder.Gap? =
+        com.somnia.domain.sleep.SleepGapFinder.find(
+            interactionsBetween(trackingStart - com.somnia.domain.sleep.SleepGapFinder.LOOKBACK_MS, trackingStart + 60_000L),
+            trackingStart,
+        )
+
     /** Estime la nuit précédente : plus longue période sans usage entre 19 h la veille et 14 h. */
     fun estimateLastNight(now: Long = System.currentTimeMillis()): Estimate? {
         if (!hasAccess()) return null

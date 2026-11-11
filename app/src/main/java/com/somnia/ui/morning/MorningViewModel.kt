@@ -25,13 +25,18 @@ data class MorningUi(
     val phoneNotOnBed: Boolean = false,
     val fragment: String? = null,
     val dreamNote: String = "",
+    /** Sommeil probable avant le lancement, en attente de confirmation (les récompenses attendent). */
+    val earlierSleepFrom: Long? = null,
+    val resolving: Boolean = false,
 )
 
 class MorningViewModel(private val c: AppContainer, private val sessionId: Long) : ViewModel() {
     private val _ui = MutableStateFlow(MorningUi())
     val ui: StateFlow<MorningUi> = _ui.asStateFlow()
 
-    init {
+    init { load() }
+
+    private fun load() {
         viewModelScope.launch {
             val session = c.sleepRepository.session(sessionId)
             val rewards = c.gameRepository.reward(sessionId)
@@ -45,6 +50,7 @@ class MorningViewModel(private val c: AppContainer, private val sessionId: Long)
                     com.somnia.domain.game.DreamFragments.forNight(it.id, com.somnia.domain.game.RewardEngine.sleepType(it.toSummary()))
                 },
                 dreamNote = session?.dreamNote.orEmpty(),
+                earlierSleepFrom = session?.startCandidate,
             )
         }
     }
@@ -52,6 +58,16 @@ class MorningViewModel(private val c: AppContainer, private val sessionId: Long)
     fun rate(value: Int) {
         _ui.value = _ui.value.copy(rating = value)
         viewModelScope.launch { c.nightProcessor.setMorningRating(sessionId, value) }
+    }
+
+    /** Réponse à la question « Dormiez-vous déjà avant de lancer la nuit ? ». */
+    fun answerEarlierSleep(accept: Boolean) {
+        if (_ui.value.resolving) return
+        _ui.value = _ui.value.copy(resolving = true)
+        viewModelScope.launch {
+            c.nightProcessor.resolveStartCandidate(sessionId, accept)
+            load()
+        }
     }
 
     fun toggleFactor(f: SleepFactor) {

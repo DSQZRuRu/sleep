@@ -125,7 +125,7 @@ fun PermissionsPanel(micWanted: Boolean, modifier: Modifier = Modifier) {
             ) { runtimeLauncher.launch(Manifest.permission.RECORD_AUDIO) }
         }
         PermissionRow(
-            "Données d'utilisation (optionnel)", "Estime votre nuit à partir du dernier/premier déverrouillage si vous oubliez de lancer le suivi.",
+            "Données d'utilisation (optionnel)", "Estime votre nuit si vous oubliez de lancer le suivi, et repère un sommeil commencé avant son lancement.",
             PermissionStatus.usageAccess(context),
         ) { context.launch(PermissionIntents.usage()) }
     } }

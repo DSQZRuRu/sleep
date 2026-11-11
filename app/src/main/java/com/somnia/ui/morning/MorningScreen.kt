@@ -75,8 +75,8 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
     val xpAnim = remember { Animatable(0f) }
     var burst by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(session?.id, rewards) {
-        if (session == null) return@LaunchedEffect
+    LaunchedEffect(session?.id, rewards, ui.earlierSleepFrom) {
+        if (session == null || ui.earlierSleepFrom != null) return@LaunchedEffect
         delay(300)
         phase = 1
         burst++
@@ -113,6 +113,32 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
     ) {
         Text("Bonjour ☀", style = MaterialTheme.typography.headlineMedium)
         if (session == null) return@Column
+
+        // Avant la révélation : la nuit a-t-elle commencé avant le lancement du suivi ?
+        ui.earlierSleepFrom?.let { from ->
+            val fromText = com.somnia.domain.sleep.TimeMath.format(com.somnia.data.repository.Clock.minuteOfDay(from))
+            val launchText = com.somnia.domain.sleep.TimeMath.format(com.somnia.data.repository.Clock.minuteOfDay(session.startTime))
+            val extra = ((session.startTime - from) / 60_000L).toInt()
+            CompanionView(com.somnia.domain.game.CompanionStage.YOUNG, com.somnia.domain.game.CompanionMood.SLEEPY, Modifier.size(120.dp))
+            SomniaCard(accent = SomniaColors.Lavender) {
+                SectionLabel("Petite question avant vos récompenses")
+                Text("Vous dormiez déjà avant de lancer la nuit ?", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "Votre téléphone n'a pas été utilisé de $fromText jusqu'à un court réveil juste avant le lancement du suivi, à $launchText. " +
+                        "Si vous dormiez pendant ce temps, Somnia ajoute ces ${com.somnia.domain.sleep.TimeMath.formatDuration(extra)} à votre nuit " +
+                        "(comptées en sommeil estimé, sans phases détaillées) avant de calculer score et récompenses.",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+                )
+                GameButton(
+                    "Oui, je dormais depuis $fromText", onClick = { vm.answerEarlierSleep(true) },
+                    enabled = !ui.resolving, leading = "☾", modifier = Modifier.fillMaxWidth(),
+                )
+                androidx.compose.material3.OutlinedButton(
+                    onClick = { vm.answerEarlierSleep(false) }, enabled = !ui.resolving, modifier = Modifier.fillMaxWidth(),
+                ) { Text("Non, j'étais éveillé") }
+            }
+            return@Column
+        }
 
         AnimatedVisibility(phase >= 1, enter = fadeIn() + scaleIn(spring(Spring.DampingRatioMediumBouncy))) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

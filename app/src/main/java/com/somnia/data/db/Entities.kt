@@ -43,6 +43,12 @@ data class SleepSessionEntity(
     val dreamNote: String = "",
     /** Sieste : exclue des statistiques et des récompenses de nuit. */
     val isNap: Boolean = false,
+    /**
+     * Début de sommeil probable avant le lancement du suivi (téléphone inutilisé longtemps puis
+     * réveil pour lancer). Non nul tant que l'utilisateur n'a pas confirmé ou refusé : les
+     * récompenses de la nuit attendent sa réponse.
+     */
+    val startCandidate: Long? = null,
 )
 
 @Entity(

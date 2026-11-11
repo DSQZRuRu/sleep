@@ -152,3 +152,29 @@ class DebtAndJetlagTest {
         assertEquals(150, r.minutes) // milieu 3 h → 5 h 30
     }
 }
+
+class SleepGapFinderTest {
+    private val min = 60_000L
+    private val start = 1_000 * min // lancement du suivi
+
+    @Test
+    fun detectsSleepBeforeLaunch() {
+        // dernier usage à -155 min, rien, puis déverrouillage à -3 min et -2 min, lancement.
+        val gap = com.somnia.domain.sleep.SleepGapFinder.find(listOf(start - 200 * min, start - 155 * min, start - 3 * min, start - 2 * min), start)!!
+        assertEquals(start - 155 * min, gap.asleepFrom)
+        assertEquals(start - 3 * min, gap.wokeAt)
+        assertEquals(152, gap.minutes)
+    }
+
+    @Test
+    fun noGapWhenPhoneWasUsedUntilLaunch() {
+        val busy = (0..60).map { start - it * 4 * min }
+        assertEquals(null, com.somnia.domain.sleep.SleepGapFinder.find(busy, start))
+    }
+
+    @Test
+    fun noGapWithoutWakeUpBeforeLaunch() {
+        // dernier usage 2 h avant le lancement : pas de « réveil pour lancer » détectable
+        assertEquals(null, com.somnia.domain.sleep.SleepGapFinder.find(listOf(start - 120 * min), start))
+    }
+}

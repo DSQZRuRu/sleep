@@ -25,6 +25,8 @@ class AppContainer(context: Context) {
     val usageDetector = PhoneUsageDetector(appContext)
     val reminderPrefs = ReminderPrefs(appContext)
     val backupManager = BackupManager(appContext, database)
-    val nightProcessor = NightProcessor(database, { gamePrefs.activeEvent() }, { reminderPrefs.morningLightDay })
+    val nightProcessor = NightProcessor(
+        database, { gamePrefs.activeEvent() }, { reminderPrefs.morningLightDay }, { usageDetector.sleepGapBefore(it) },
+    )
     val reminderScheduler = ReminderScheduler(appContext, reminderPrefs, profileRepository)
 }
