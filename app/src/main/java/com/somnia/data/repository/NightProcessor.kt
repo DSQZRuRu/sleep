@@ -191,7 +191,9 @@ class NightProcessor(
     }
 
     /** Nuit estimée à partir de l'usage du téléphone (détection de secours). */
-    suspend fun createUsageSession(start: Long, end: Long, targetBed: Int, targetWake: Int): Long = db.withTransaction {
+    suspend fun createUsageSession(
+        start: Long, end: Long, targetBed: Int, targetWake: Int, source: String = SessionSource.PHONE_USAGE,
+    ): Long = db.withTransaction {
         val profile = profileDao.get() ?: com.somnia.data.db.ProfileEntity()
         val inBed = ((end - start) / 60_000L).toInt()
         val sleep = (inBed - profile.latencyMin).coerceAtLeast(0)
@@ -204,7 +206,7 @@ class NightProcessor(
         val score = SleepScoreCalculator.score(analysis, deviation, hasStages = false).total
         val id = sleepDao.insertSession(
             SleepSessionEntity(
-                startTime = start, endTime = end, source = SessionSource.PHONE_USAGE,
+                startTime = start, endTime = end, source = source,
                 sleepOnset = start + profile.latencyMin * 60_000L, finalWake = end,
                 totalSleepMin = sleep, lightMin = sleep, awakeMin = inBed - sleep,
                 latencyMin = profile.latencyMin, score = score,

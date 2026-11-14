@@ -8,6 +8,7 @@ import androidx.room.PrimaryKey
 object SessionSource {
     const val SENSORS = "SENSORS"
     const val PHONE_USAGE = "PHONE_USAGE"
+    const val MANUAL = "MANUAL"
 }
 
 @Entity(tableName = "sleep_sessions")

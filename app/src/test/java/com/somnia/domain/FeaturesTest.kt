@@ -178,3 +178,26 @@ class SleepGapFinderTest {
         assertEquals(null, com.somnia.domain.sleep.SleepGapFinder.find(listOf(start - 120 * min), start))
     }
 }
+
+class UsageNightEstimatorTest {
+    private val UsageNightEstimator = com.somnia.domain.sleep.UsageNightEstimator
+    private val h = 3_600_000L
+    private fun mod(ts: Long) = ((ts / 60_000L) % 1440).toInt()
+
+    @Test
+    fun lateBedtimeAndAfternoonWake() {
+        // jour 0 minuit = 0. Usage la soirée jusqu'à 7 h du matin (jour 1), lever à 15 h.
+        val day1 = 24 * h
+        val uses = listOf(20 * h, 22 * h, day1 + 2 * h, day1 + 6 * h, day1 + 7 * h, day1 + 15 * h, day1 + 15 * h + 600_000L)
+        val n = UsageNightEstimator.estimate(uses, ::mod)!!
+        assertEquals(day1 + 7 * h, n.start)
+        assertEquals(day1 + 15 * h, n.end)
+    }
+
+    @Test
+    fun ignoresAfternoonBreaks() {
+        // pause de 4 h l'après-midi (14 h → 18 h) : pas une nuit
+        val uses = listOf(11 * h + 1_800_000L, 14 * h, 18 * h, 19 * h)
+        assertEquals(null, UsageNightEstimator.estimate(uses, ::mod))
+    }
+}

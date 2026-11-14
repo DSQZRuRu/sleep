@@ -64,7 +64,17 @@ fun HistoryScreen(vm: HistoryViewModel, onOpen: (Long) -> Unit, onOpenRecap: (In
         contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item { Text("Historique", style = MaterialTheme.typography.headlineMedium) }
+        item {
+            var adding by remember { mutableStateOf(false) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Historique", Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium)
+                TextButton(onClick = { adding = true }) { Text("+ Ajouter une nuit") }
+            }
+            if (adding) AddNightDialog(onDismiss = { adding = false }) { day, bed, wake ->
+                adding = false
+                vm.addManualNight(day, bed, wake)
+            }
+        }
         item {
             SomniaCard {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -126,7 +136,10 @@ fun HistoryScreen(vm: HistoryViewModel, onOpen: (Long) -> Unit, onOpenRecap: (In
                     StatItem("Sommeil", TimeMath.formatDuration(s.totalSleepMin))
                     StatItem("Horaires", "${TimeMath.format(Clock.minuteOfDay(s.startTime))}–${TimeMath.format(Clock.minuteOfDay(s.wakeTime))}")
                 }
-                if (!s.hasStages) Text("Estimée via l'usage du téléphone", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                if (!s.hasStages) Text(
+                    if (s.source == com.somnia.data.db.SessionSource.MANUAL) "Ajoutée à la main" else "Estimée via l'usage du téléphone",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+                )
             }
         }
     }
@@ -209,4 +222,38 @@ fun NightDetailScreen(vm: NightDetailViewModel, onBack: () -> Unit) {
             dismissButton = { TextButton(onClick = { confirm = false }) { Text("Annuler") } },
         )
     }
+}
+
+
+/** Saisie manuelle d'une nuit non suivie : quel soir, heure de coucher, heure de lever. */
+@Composable
+private fun AddNightDialog(onDismiss: () -> Unit, onAdd: (eveningDay: Long, bedMin: Int, wakeMin: Int) -> Unit) {
+    val yesterday = Clock.today() - 1
+    var day by remember { mutableStateOf(yesterday) }
+    var bed by remember { mutableStateOf(23 * 60) }
+    var wake by remember { mutableStateOf(7 * 60) }
+    val fmt = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.FRENCH)
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Ajouter une nuit") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { day -= 1 }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Soir précédent") }
+                    Text("Nuit du " + java.time.LocalDate.ofEpochDay(day).format(fmt), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+                    IconButton(onClick = { if (day < yesterday) day += 1 }, enabled = day < yesterday) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Soir suivant")
+                    }
+                }
+                Text("Couché à", style = MaterialTheme.typography.labelLarge)
+                com.somnia.ui.components.TimeStepper(bed, { bed = it })
+                Text("Levé à", style = MaterialTheme.typography.labelLarge)
+                com.somnia.ui.components.TimeStepper(wake, { wake = it })
+                Text("Sans mesure du téléphone : le sommeil est estimé avec votre temps d'endormissement habituel, sans phases.",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+            }
+        },
+        confirmButton = { TextButton(onClick = { onAdd(day, bed, wake) }) { Text("Ajouter") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler") } },
+    )
 }

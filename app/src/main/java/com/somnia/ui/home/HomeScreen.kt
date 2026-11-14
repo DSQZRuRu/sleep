@@ -140,6 +140,19 @@ fun HomeScreen(
         }
 
         // Estimation de secours
+        val usageAccess by vm.usageAccess.collectAsStateWithLifecycle()
+        val lastNightMissing = ui.lastNight?.let { com.somnia.data.repository.Clock.nightDay(it.startTime) < com.somnia.data.repository.Clock.today() - 1 } ?: true
+        if (!usageAccess && lastNightMissing && java.time.LocalTime.now().hour in 5..19) {
+            SomniaCard {
+                SectionLabel("Nuit non suivie ?")
+                Text("Somnia peut estimer une nuit oubliée d'après l'usage du téléphone (dernier et premier déverrouillage), " +
+                    "si vous lui donnez accès aux données d'utilisation. Sinon, ajoutez-la à la main dans Historique.",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                OutlinedButton(onClick = {
+                    runCatching { context.startActivity(com.somnia.ui.permissions.PermissionIntents.usage().addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                }) { Text("Autoriser les données d'utilisation") }
+            }
+        }
         ui.usageEstimate?.let { e ->
             SomniaCard {
                 SectionLabel("Nuit non suivie ?")

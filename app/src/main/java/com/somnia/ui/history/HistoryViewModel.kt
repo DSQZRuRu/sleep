@@ -69,6 +69,25 @@ class HistoryViewModel(private val c: AppContainer) : ViewModel() {
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUi())
 
+    /**
+     * Ajout manuel d'une nuit (sans mesure) : [eveningDay] est le soir où elle a commencé ;
+     * un coucher avant midi est compris comme « après minuit ».
+     */
+    fun addManualNight(eveningDay: Long, bedMin: Int, wakeMin: Int) {
+        viewModelScope.launch {
+            val zone = Clock.zone()
+            val bedDate = if (bedMin < 12 * 60) eveningDay + 1 else eveningDay
+            val start = LocalDate.ofEpochDay(bedDate).atTime(bedMin / 60, bedMin % 60).atZone(zone).toInstant().toEpochMilli()
+            var end = LocalDate.ofEpochDay(bedDate).atTime(wakeMin / 60, wakeMin % 60).atZone(zone).toInstant().toEpochMilli()
+            if (end <= start) end += 86_400_000L
+            val p = c.profileRepository.get()
+            c.nightProcessor.createUsageSession(
+                start, end, com.somnia.data.repository.ProfileRepository.idealBedtime(p), p.targetWakeMin,
+                source = com.somnia.data.db.SessionSource.MANUAL,
+            )
+        }
+    }
+
     fun previousWeek() { offset.value += 1 }
     fun nextWeek() { if (offset.value > 0) offset.value -= 1 }
 }

@@ -107,14 +107,17 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
 
     /** Détection de secours : propose une estimation si la nuit dernière n'a pas été suivie. */
     fun refreshUsageEstimate() { viewModelScope.launch {
+        _usageAccess.value = c.usageDetector.hasAccess()
         val hour = LocalTime.now(Clock.zone()).hour
-        if (hour !in 5..14) { usageEstimate.value = null; return@launch }
-        val today = LocalDate.now(Clock.zone())
-        val from = today.minusDays(1).atTime(18, 0).atZone(Clock.zone()).toInstant().toEpochMilli()
-        val to = today.atTime(14, 0).atZone(Clock.zone()).toInstant().toEpochMilli()
-        val existing = c.database.sleepDao().sessionStartedBetween(from, to)
-        usageEstimate.value = if (existing != null) null else withContext(Dispatchers.IO) { c.usageDetector.estimateLastNight() }
+        if (hour !in 5..19) { usageEstimate.value = null; return@launch }
+        val estimate = withContext(Dispatchers.IO) { c.usageDetector.estimateLastNight() }
+        // Déjà une nuit enregistrée sur cette période ? On ne propose rien.
+        val existing = estimate?.let { c.database.sleepDao().sessionStartedBetween(it.sleepStart - 3 * 3_600_000L, it.wakeTime) }
+        usageEstimate.value = if (existing != null) null else estimate
     } }
+
+    private val _usageAccess = MutableStateFlow(true)
+    val usageAccess: StateFlow<Boolean> = _usageAccess
 
     fun acceptUsageEstimate() {
         val e = usageEstimate.value ?: return
