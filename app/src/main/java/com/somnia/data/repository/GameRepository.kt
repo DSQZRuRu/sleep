@@ -59,6 +59,8 @@ data class StoredRewards(
     val expeditionSteps: Int = 0,
     val regionsCompleted: List<DreamRegion> = emptyList(),
     val fullMoon: Boolean = false,
+    /** Créatures ayant gagné une étoile cette nuit, avec leur nouveau nombre d'étoiles. */
+    val starUps: List<Pair<DreamCreature, Int>> = emptyList(),
 ) {
     val xpTotal get() = xpLines.sumOf { it.xp }
 }
@@ -69,8 +71,17 @@ data class RoomState(val owned: Set<String>, val layout: Map<DecorSlot, DecorIte
 }
 
 /** Créature possédée avec sa progression. */
-data class OwnedCreature(val creature: DreamCreature, val level: Int, val slot: Int?, val count: Int) {
-    val bonusPct get() = CreatureProgression.bonusPct(creature, level)
+data class OwnedCreature(
+    val creature: DreamCreature,
+    val level: Int,
+    val slot: Int?,
+    val count: Int,
+    val stars: Int = 0,
+    val shards: Int = 0,
+) {
+    val bonusPct get() = CreatureProgression.bonusPct(creature, level, stars)
+    /** Doublons nécessaires pour l'étoile suivante (null à 5 étoiles). */
+    val shardsNeeded: Int? get() = com.somnia.domain.game.CreatureStars.needed(creature.rarity, stars)
     val upgradeCost get() = CreatureProgression.upgradeCost(creature, level)
     val maxed get() = level >= CreatureProgression.MAX_LEVEL
 }
@@ -108,7 +119,7 @@ class GameRepository(private val db: SomniaDatabase) {
     val owned: Flow<List<OwnedCreature>> = combine(dao.observeProgress(), dao.observeCatches()) { progress, catches ->
         val counts = catches.groupingBy { it.creatureId }.eachCount()
         progress.mapNotNull { p ->
-            DreamCreatureCatalog.byId(p.creatureId)?.let { OwnedCreature(it, p.level, p.slot, counts[p.creatureId] ?: 1) }
+            DreamCreatureCatalog.byId(p.creatureId)?.let { OwnedCreature(it, p.level, p.slot, counts[p.creatureId] ?: 1, p.stars, p.shards) }
         }
     }
 
@@ -220,6 +231,10 @@ class GameRepository(private val db: SomniaDatabase) {
             expeditionSteps = expeditionSteps,
             regionsCompleted = regionsCompleted.split(",").mapNotNull { id -> Expedition.regions.firstOrNull { it.id == id } },
             fullMoon = fullMoon,
+            starUps = starUps.split(",").filter { ":" in it }.mapNotNull { e ->
+                val (id, st) = e.split(":", limit = 2)
+                DreamCreatureCatalog.byId(id)?.let { it to (st.toIntOrNull() ?: 0) }
+            },
         )
     }
 }

@@ -201,3 +201,28 @@ class UsageNightEstimatorTest {
         assertEquals(null, UsageNightEstimator.estimate(uses, ::mod))
     }
 }
+
+class CreatureStarsTest {
+    private val S = com.somnia.domain.game.CreatureStars
+
+    @Test
+    fun duplicatesFillStars() {
+        val r = S.addDuplicates(com.somnia.domain.game.Rarity.COMMON, 0, 0, 2) // 2 doublons → ★1
+        assertEquals(1, r.stars); assertEquals(0, r.shards); assertEquals(1, r.gained)
+        val r2 = S.addDuplicates(com.somnia.domain.game.Rarity.COMMON, 1, 0, 2) // ★2 demande 3
+        assertEquals(1, r2.stars); assertEquals(2, r2.shards)
+    }
+
+    @Test
+    fun overflowAfterFiveStars() {
+        val r = S.addDuplicates(com.somnia.domain.game.Rarity.LEGENDARY, 0, 0, 10) // 1+1+1+2+3 = 8 pour ★5
+        assertEquals(5, r.stars); assertEquals(2, r.overflow); assertEquals(0, r.shards)
+    }
+
+    @Test
+    fun starsRaiseBonus() {
+        val c = com.somnia.domain.game.DreamCreatureCatalog.byId("onirion")!! // légendaire : base 12, +3 par étape
+        assertEquals(12, com.somnia.domain.game.CreatureProgression.bonusPct(c, 1, 0))
+        assertEquals(18, com.somnia.domain.game.CreatureProgression.bonusPct(c, 1, 2))
+    }
+}

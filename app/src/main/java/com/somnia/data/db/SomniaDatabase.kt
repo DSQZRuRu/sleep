@@ -30,7 +30,7 @@ abstract class SomniaDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao
 
     companion object {
-        const val VERSION = 5
+        const val VERSION = 6
         const val NAME = "somnia.db"
 
         /** v2 : Éclat de rêve, poussière d'étoiles, niveaux et lit des créatures, événements. */
@@ -84,9 +84,31 @@ abstract class SomniaDatabase : RoomDatabase() {
             }
         }
 
+        /** v6 : étoiles des créatures, calculées rétroactivement à partir des doublons déjà rencontrés. */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE creature_progress ADD COLUMN stars INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE creature_progress ADD COLUMN shards INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE night_rewards ADD COLUMN starUps TEXT NOT NULL DEFAULT ''")
+                db.query("SELECT creatureId, COUNT(*) FROM creature_catches GROUP BY creatureId").use { c ->
+                    while (c.moveToNext()) {
+                        val id = c.getString(0)
+                        val duplicates = c.getInt(1) - 1
+                        val creature = com.somnia.domain.game.DreamCreatureCatalog.byId(id) ?: continue
+                        if (duplicates <= 0) continue
+                        val r = com.somnia.domain.game.CreatureStars.addDuplicates(creature.rarity, 0, 0, duplicates)
+                        db.execSQL(
+                            "UPDATE creature_progress SET stars = ?, shards = ? WHERE creatureId = ?",
+                            arrayOf<Any>(r.stars, r.shards, id),
+                        )
+                    }
+                }
+            }
+        }
+
         fun create(context: Context): SomniaDatabase =
             Room.databaseBuilder(context, SomniaDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
     }
 }

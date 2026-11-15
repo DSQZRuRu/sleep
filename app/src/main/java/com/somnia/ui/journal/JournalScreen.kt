@@ -308,6 +308,7 @@ private fun BedSlot(owned: OwnedCreature?, unlocked: Boolean, lockLevel: Int, mo
             owned != null -> {
                 CreatureView(owned.creature, Modifier.fillMaxWidth().aspectRatio(1f), level = owned.level)
                 Text(owned.creature.name, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                if (owned.stars > 0) Text("★".repeat(owned.stars), style = MaterialTheme.typography.labelSmall, color = SomniaColors.Gold)
                 Text("niv. ${owned.level} · ${owned.creature.bonus.symbol} +${owned.bonusPct} %",
                     style = MaterialTheme.typography.labelSmall, color = SomniaColors.Gold)
             }
@@ -348,9 +349,13 @@ private fun CreatureTile(e: CreatureEntry, onClick: () -> Unit) {
             if (e.owned?.slot != null) Text("☾", Modifier.align(Alignment.TopEnd), color = SomniaColors.Lavender)
         }
         Text(if (found) e.creature.name else "???", style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center, maxLines = 1)
+        e.owned?.let { o ->
+            Text(com.somnia.domain.game.CreatureStars.display(o.stars), style = MaterialTheme.typography.labelSmall,
+                color = if (o.stars > 0) SomniaColors.Gold else SomniaColors.Muted.copy(alpha = 0.5f))
+        }
         Text(
             when {
-                e.owned != null -> "niv. ${e.owned.level} · ×${e.count}"
+                e.owned != null -> "niv. ${e.owned.level}"
                 e.creature.eventId == "pleinelune" -> "Pleine lune"
                 e.creature.eventId != null -> "Événement"
                 else -> e.creature.type.label
@@ -391,6 +396,17 @@ private fun CreatureDialog(
                     if (!o.maxed) Text("Niveau ${o.level + 1} : +${CreatureProgression.bonusPct(c, o.level + 1)} %",
                         style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
                     ProgressBar(o.level / CreatureProgression.MAX_LEVEL.toFloat(), color = SomniaColors.Gold)
+                    Spacer(Modifier.height(4.dp))
+                    Text(com.somnia.domain.game.CreatureStars.display(o.stars), style = MaterialTheme.typography.titleLarge, color = SomniaColors.Gold)
+                    val need = o.shardsNeeded
+                    if (need != null) {
+                        ProgressBar(o.shards / need.toFloat(), color = SomniaColors.Gold)
+                        Text("Doublons : ${o.shards} / $need vers ★${o.stars + 1} · chaque étoile ajoute +${CreatureProgression.bonusPct(c, 1, 1) - CreatureProgression.bonusPct(c, 1, 0)} % au bonus",
+                            style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                    } else {
+                        Text("5 étoiles : constellation complète ✯ Les doublons suivants deviennent de la poussière.",
+                            style = MaterialTheme.typography.bodySmall, color = SomniaColors.Gold)
+                    }
                     Text("Rencontrée ${o.count} fois", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
                     if (!o.maxed) com.somnia.ui.game.GameButton(
                         "Améliorer · ✦ ${o.upgradeCost}", onClick = onLevelUp, enabled = stardust >= o.upgradeCost,

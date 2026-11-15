@@ -16,6 +16,8 @@ data class GameSnapshot(
     val bestDream: Int = 0,
     val equipped: List<EquippedCreature> = emptyList(),
     val maxCreatureLevel: Int = 1,
+    /** Étoiles et doublons en réserve, par créature possédée. */
+    val stars: Map<String, Pair<Int, Int>> = emptyMap(),
 )
 
 data class NightRewards(
@@ -35,7 +37,12 @@ data class NightRewards(
     val duplicateStardust: Int,
     val event: SeasonalEvent?,
     val expedition: ExpeditionResult = ExpeditionResult(0, ExpeditionState(), emptyList(), 0),
+    /** Nouvel état des étoiles des créatures ayant reçu des doublons. */
+    val starUpdates: Map<String, CreatureStars.Result> = emptyMap(),
 ) {
+    /** Créatures ayant gagné au moins une étoile cette nuit. */
+    val starUps: List<Pair<DreamCreature, Int>>
+        get() = starUpdates.filter { it.value.gained > 0 }.mapNotNull { (id, r) -> DreamCreatureCatalog.byId(id)?.let { it to r.stars } }
     val stardustGained: Int get() = dream.stardust + duplicateStardust + expedition.stardust
     val xpTotal: Int get() = xpLines.sumOf { it.xp }
     val leveledUp: Boolean get() = levelAfter > levelBefore
@@ -118,12 +125,19 @@ object RewardEngine {
 
         val creatures = rollCreatures(night, random, event, fullMoon)
         val newIds = creatures.map { it.id }.filter { it !in snapshot.ownedCreatureIds }.toSet()
-        // Les créatures déjà connues (ou en double cette nuit) se dissolvent en poussière d'étoiles.
+        // Doublons (déjà connues, ou plusieurs fois la même cette nuit) : ils font gagner des étoiles ;
+        // au-delà de 5 étoiles, ils se dissolvent en poussière d'étoiles.
         val seen = snapshot.ownedCreatureIds.toMutableSet()
+        val duplicates = mutableMapOf<String, Int>()
+        for (c in creatures) if (!seen.add(c.id)) duplicates[c.id] = (duplicates[c.id] ?: 0) + 1
         var duplicateDust = 0
-        for (c in creatures) {
-            if (!seen.add(c.id)) duplicateDust += CreatureProgression.duplicateStardust(c.rarity)
-        }
+        val starUpdates = duplicates.mapNotNull { (id, count) ->
+            val c = DreamCreatureCatalog.byId(id) ?: return@mapNotNull null
+            val (stars, shards) = snapshot.stars[id] ?: (0 to 0)
+            val r = CreatureStars.addDuplicates(c.rarity, stars, shards, count)
+            duplicateDust += r.overflow * CreatureProgression.duplicateStardust(c.rarity)
+            id to r
+        }.toMap()
         if (newIds.isNotEmpty()) lines += XpCalculator.Line("Nouvelle créature", 15 * newIds.size)
 
         val care = CompanionLogic.careForNight(night.score, night.regular, night.healthyDuration)
@@ -154,6 +168,7 @@ object RewardEngine {
             bestDream = maxOf(snapshot.bestDream, dream.total),
             eventCreatureIds = (snapshot.ownedCreatureIds + newIds).filter { DreamCreatureCatalog.byId(it)?.eventId != null }.toSet(),
             regionsCompleted = expedition.regionIndex + exp.completed.size,
+            maxStars = (snapshot.stars.mapValues { it.value.first } + starUpdates.mapValues { it.value.stars }).values.maxOrNull() ?: 0,
         )
         val newBadges = BadgeCatalog.earned(ctx).filter { it !in snapshot.unlockedBadges }.mapNotNull { BadgeCatalog.byId(it) }
 
@@ -174,6 +189,7 @@ object RewardEngine {
             duplicateStardust = duplicateDust,
             event = event,
             expedition = exp,
+            starUpdates = starUpdates,
         )
     }
 }

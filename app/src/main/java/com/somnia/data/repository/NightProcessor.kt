@@ -257,7 +257,7 @@ class NightProcessor(
         val catches = gameDao.catches()
         val progress = gameDao.progress()
         val equipped = progress.filter { it.slot != null }.sortedBy { it.slot }.mapNotNull { p ->
-            DreamCreatureCatalog.byId(p.creatureId)?.let { EquippedCreature(it, p.level) }
+            DreamCreatureCatalog.byId(p.creatureId)?.let { EquippedCreature(it, p.level, p.stars) }
         }
         val previousScore = sleepDao.recentProcessed(2).firstOrNull { it.id != session.id }?.score
         val event = activeEvent()
@@ -279,6 +279,7 @@ class NightProcessor(
             bestDream = state.bestDream,
             equipped = equipped,
             maxCreatureLevel = progress.maxOfOrNull { it.level } ?: 1,
+            stars = progress.associate { it.creatureId to (it.stars to it.shards) },
         )
         val rewards = RewardEngine.process(
             night, weekNights, snapshot, sleepDao.processedCount(), regularity,
@@ -305,6 +306,7 @@ class NightProcessor(
             gameDao.insertCatches(rewards.creatures.map { CreatureCatchEntity(creatureId = it.id, sessionId = session.id, caughtAt = now) })
             gameDao.insertProgress(rewards.creatures.map { CreatureProgressEntity(it.id) })
         }
+        rewards.starUpdates.forEach { (id, r) -> gameDao.setStars(id, r.stars, r.shards) }
         gameDao.insertBadges(rewards.newBadges.map { BadgeUnlockEntity(it.id, now) })
         gameDao.insertChallengeCompletions(rewards.completedChallenges.map { ChallengeCompletionEntity(week, it.id, now) })
         gameDao.upsertReward(
@@ -332,6 +334,7 @@ class NightProcessor(
                 expeditionSteps = rewards.expedition.stepsGained,
                 regionsCompleted = rewards.expedition.completed.joinToString(",") { it.id },
                 fullMoon = fullMoon,
+                starUps = rewards.starUps.joinToString(",") { "${it.first.id}:${it.second}" },
             )
         )
         return rewards

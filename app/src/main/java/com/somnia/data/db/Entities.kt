@@ -127,6 +127,10 @@ data class CreatureProgressEntity(
     @PrimaryKey val creatureId: String,
     val level: Int = 1,
     val slot: Int? = null,
+    /** Étoiles (0 à 5) gagnées grâce aux doublons. */
+    val stars: Int = 0,
+    /** Doublons accumulés vers l'étoile suivante. */
+    val shards: Int = 0,
 )
 
 @Entity(tableName = "creature_catches", indices = [Index("creatureId")])
@@ -179,4 +183,6 @@ data class NightRewardEntity(
     /** Régions terminées cette nuit (ids séparés par des virgules). */
     val regionsCompleted: String = "",
     val fullMoon: Boolean = false,
+    /** Étoiles gagnées cette nuit : "id:étoiles" séparés par des virgules. */
+    val starUps: String = "",
 )

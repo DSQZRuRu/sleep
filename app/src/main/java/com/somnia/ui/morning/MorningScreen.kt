@@ -96,7 +96,8 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
         phase = 4; delay(400)
         phase = 5; delay(rewards?.creatures?.size?.times(350L) ?: 0L)
         phase = 6
-        if (rewards != null && (rewards.levelAfter > rewards.levelBefore || rewards.stageAfter != rewards.stageBefore || rewards.badges.isNotEmpty())) burst++
+        if (rewards != null && (rewards.levelAfter > rewards.levelBefore || rewards.stageAfter != rewards.stageBefore ||
+                rewards.badges.isNotEmpty() || rewards.starUps.isNotEmpty())) burst++
         delay(400)
         phase = 7
     }
@@ -253,6 +254,21 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
                             }
                         }
                     }
+                    if (rewards.starUps.isNotEmpty()) {
+                        SomniaCard(accent = SomniaColors.Gold) {
+                            SectionLabel("Nouvelles étoiles")
+                            rewards.starUps.forEach { (c, stars) ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    CreatureView(c, Modifier.size(56.dp))
+                                    Spacer(Modifier.width(12.dp))
+                                    Column {
+                                        Text("${c.name} atteint $stars étoile${if (stars > 1) "s" else ""} !", style = MaterialTheme.typography.titleSmall)
+                                        Text(com.somnia.domain.game.CreatureStars.display(stars), color = SomniaColors.Gold)
+                                    }
+                                }
+                            }
+                        }
+                    }
                     rewards.challenges.forEach {
                         SomniaCard {
                             SectionLabel("Défi accompli")
@@ -338,6 +354,7 @@ private fun CreatureReveal(creature: DreamCreature, isNew: Boolean, delayMs: Lon
             Text(creature.name, style = MaterialTheme.typography.titleSmall)
             Text(creature.rarity.label, style = MaterialTheme.typography.labelSmall, color = rarityColor(creature.rarity))
             if (isNew) Text("NOUVEAU", style = MaterialTheme.typography.labelSmall, color = SomniaColors.Gold)
+            else Text("DOUBLON ☆", style = MaterialTheme.typography.labelSmall, color = SomniaColors.Muted)
         }
     }
 }
@@ -395,7 +412,7 @@ private fun DreamReveal(rewards: com.somnia.data.repository.StoredRewards) {
                 rewards.stardustLines.filter { it.active }.forEach {
                     Text("${it.label} : +${it.pct} %", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
                 }
-                if (rewards.duplicateStardust > 0) Text("Créatures déjà connues dissoutes en poussière : +${rewards.duplicateStardust} ✦",
+                if (rewards.duplicateStardust > 0) Text("Doublons au-delà de 5 étoiles dissous en poussière : +${rewards.duplicateStardust} ✦",
                     style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
             }
         }

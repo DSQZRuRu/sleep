@@ -27,11 +27,13 @@ object CreatureProgression {
         Rarity.LEGENDARY -> 12
     }
 
-    /** Bonus en % au niveau donné : +¼ du bonus de base par niveau (au moins +1). */
-    fun bonusPct(creature: DreamCreature, level: Int): Int {
+    /**
+     * Bonus en % : +¼ du bonus de base par niveau (au moins +1), et autant par étoile.
+     */
+    fun bonusPct(creature: DreamCreature, level: Int, stars: Int = 0): Int {
         val base = basePct(creature.rarity)
-        val perLevel = maxOf(1, base / 4)
-        return base + perLevel * (level.coerceIn(1, MAX_LEVEL) - 1)
+        val perStep = maxOf(1, base / 4)
+        return base + perStep * (level.coerceIn(1, MAX_LEVEL) - 1) + perStep * stars.coerceIn(0, CreatureStars.MAX_STARS)
     }
 
     private fun rarityFactor(r: Rarity) = when (r) {
@@ -74,7 +76,7 @@ object CreatureProgression {
     }
 }
 
-data class EquippedCreature(val creature: DreamCreature, val level: Int)
+data class EquippedCreature(val creature: DreamCreature, val level: Int, val stars: Int = 0)
 
 data class DreamLine(val label: String, val pct: Int, val active: Boolean)
 
@@ -125,7 +127,7 @@ object DreamScoreCalculator {
         }
         for (e in equipped) {
             val c = e.creature
-            var pct = CreatureProgression.bonusPct(c, e.level)
+            var pct = CreatureProgression.bonusPct(c, e.level, e.stars)
             val eventBoost = event != null && c.eventId == event.id
             if (eventBoost) pct *= 2
             val suffix = if (eventBoost) " · événement ×2" else ""

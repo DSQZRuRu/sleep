@@ -142,6 +142,9 @@ interface GameDao {
     @Query("UPDATE creature_progress SET slot = :slot WHERE creatureId = :id")
     suspend fun setSlot(id: String, slot: Int?)
 
+    @Query("UPDATE creature_progress SET stars = :stars, shards = :shards WHERE creatureId = :id")
+    suspend fun setStars(id: String, stars: Int, shards: Int)
+
     @Query("UPDATE creature_progress SET level = :level WHERE creatureId = :id")
     suspend fun setLevel(id: String, level: Int)
 
