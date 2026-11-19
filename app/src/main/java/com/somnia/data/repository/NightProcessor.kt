@@ -14,6 +14,7 @@ import com.somnia.domain.game.DecorCatalog
 import com.somnia.domain.game.DecorSlot
 import com.somnia.domain.game.DreamCreatureCatalog
 import com.somnia.domain.game.ExpeditionState
+import com.somnia.domain.sleep.AutoNightTrimmer
 import com.somnia.domain.sleep.MoonPhase
 import com.somnia.domain.sleep.SleepGapFinder
 import com.somnia.domain.sleep.SleepStage
@@ -45,6 +46,8 @@ class NightProcessor(
     private val morningLightDay: () -> Long = { -1L },
     /** Sommeil probable avant le lancement du suivi, d'après l'usage du téléphone. */
     private val sleepGapBefore: (Long) -> SleepGapFinder.Gap? = { null },
+    /** Le soir donné (epochDay) a-t-il été déclaré « soirée exceptionnelle » ? */
+    private val isExceptional: (Long) -> Boolean = { false },
 ) {
 
     private val sleepDao = db.sleepDao()
@@ -55,18 +58,37 @@ class NightProcessor(
     suspend fun finalizeSensorSession(sessionId: Long, endTime: Long, detectEarlierSleep: Boolean = true): Long? {
         // Hors transaction : lecture de l'historique d'usage du téléphone.
         val pre = sleepDao.session(sessionId)
-        val gap = if (detectEarlierSleep && pre != null && !pre.isNap && !pre.processed)
+        val gap = if (detectEarlierSleep && pre != null && !pre.isNap && !pre.processed && !pre.autoStarted)
             runCatching { sleepGapBefore(pre.startTime) }.getOrNull() else null
         return finalizeInTransaction(sessionId, endTime, gap)
     }
 
     private suspend fun finalizeInTransaction(sessionId: Long, endTime: Long, gap: SleepGapFinder.Gap?): Long? = db.withTransaction {
-        val session = sleepDao.session(sessionId) ?: return@withTransaction null
-        if (session.processed) return@withTransaction sessionId
-        val epochs = sleepDao.epochs(sessionId)
-        if (epochs.size < (if (session.isNap) MIN_NAP_EPOCHS else MIN_EPOCHS)) {
+        val session0 = sleepDao.session(sessionId) ?: return@withTransaction null
+        if (session0.processed) return@withTransaction sessionId
+        val allEpochs = sleepDao.epochs(sessionId)
+        if (allEpochs.size < (if (session0.isNap) MIN_NAP_EPOCHS else MIN_EPOCHS)) {
             sleepDao.deleteSession(sessionId)
             return@withTransaction null
+        }
+        var epochs = allEpochs
+        var session = session0
+        if (session.autoStarted) {
+            // Suivi automatique : la nuit commence au dernier usage du téléphone avant l'endormissement.
+            val first = SleepStageClassifier.classify(epochs.map { EpochInput(it.timestamp, it.motionCount, it.loudEvents, it.phoneUsed) })
+            val onset = first.sleepOnsetIndex
+            if (onset == null || first.totalSleepMin < AUTO_MIN_SLEEP) {
+                // Pas de vraie nuit (soirée sans dormir) : on jette la session en silence.
+                sleepDao.deleteSession(sessionId)
+                return@withTransaction null
+            }
+            val lastUse = AutoNightTrimmer.startIndex(first.stages, epochs.map { it.phoneUsed }) ?: 0
+            if (lastUse > 0) {
+                val newStart = epochs[lastUse].timestamp
+                sleepDao.deleteEpochsBefore(sessionId, newStart)
+                epochs = epochs.drop(lastUse)
+                session = session.copy(startTime = newStart)
+            }
         }
         val analysis = SleepStageClassifier.classify(
             epochs.map { EpochInput(it.timestamp, it.motionCount, it.loudEvents, it.phoneUsed) }
@@ -75,10 +97,13 @@ class NightProcessor(
 
         val onset = analysis.sleepOnsetIndex?.let { epochs[it].timestamp }
         val finalWake = analysis.finalWakeIndex?.let { epochs[it].timestamp + 60_000L }
-        val deviation = TimeMath.diff(Clock.minuteOfDay(session.startTime), session.targetBedMin)
+        val exceptional = isExceptional(Clock.nightDay(session.startTime))
+        // Soirée exceptionnelle : l'heure de coucher n'est pas pénalisée.
+        val deviation = if (exceptional) 0 else TimeMath.diff(Clock.minuteOfDay(session.startTime), session.targetBedMin)
         val score = SleepScoreCalculator.score(analysis, deviation).total
 
         val updated = session.copy(
+            exceptional = exceptional,
             endTime = endTime,
             sleepOnset = onset,
             finalWake = finalWake,
@@ -202,7 +227,8 @@ class NightProcessor(
             totalSleepMin = sleep, lightMin = sleep, deepMin = 0, awakeMin = inBed - sleep,
             latencyMin = profile.latencyMin, awakenings = 0, efficiency = 0f, detectedCycles = 0,
         )
-        val deviation = TimeMath.diff(Clock.minuteOfDay(start), targetBed)
+        val exceptional = isExceptional(Clock.nightDay(start))
+        val deviation = if (exceptional) 0 else TimeMath.diff(Clock.minuteOfDay(start), targetBed)
         val score = SleepScoreCalculator.score(analysis, deviation, hasStages = false).total
         val id = sleepDao.insertSession(
             SleepSessionEntity(
@@ -210,7 +236,7 @@ class NightProcessor(
                 sleepOnset = start + profile.latencyMin * 60_000L, finalWake = end,
                 totalSleepMin = sleep, lightMin = sleep, awakeMin = inBed - sleep,
                 latencyMin = profile.latencyMin, score = score,
-                targetBedMin = targetBed, targetWakeMin = targetWake, processed = true,
+                targetBedMin = targetBed, targetWakeMin = targetWake, processed = true, exceptional = exceptional,
             )
         )
         grantRewards(sleepDao.session(id)!!)
@@ -247,7 +273,7 @@ class NightProcessor(
         val weekNights = sleepDao.processedSince(weekStart)
             .map { it.toSummary() }
             .filter { WeekKey.of(it.nightDay) == week }
-        val recent = sleepDao.recentProcessed(7)
+        val recent = sleepDao.recentProcessed(10).filter { !it.exceptional }.take(7)
         val regularity = RegularityCalculator.compute(
             recent.map { Clock.minuteOfDay(it.startTime) },
             recent.map { Clock.minuteOfDay(it.wakeTime) },
@@ -344,5 +370,7 @@ class NightProcessor(
         /** En dessous de 20 minutes, on considère la nuit comme annulée. */
         const val MIN_EPOCHS = 20
         const val MIN_NAP_EPOCHS = 5
+        /** En dessous de 2 h de sommeil, une session automatique est considérée comme une soirée sans dormir. */
+        const val AUTO_MIN_SLEEP = 120
     }
 }

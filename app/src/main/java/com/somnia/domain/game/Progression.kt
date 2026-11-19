@@ -18,6 +18,8 @@ data class NightSummary(
     val restless: Boolean,
     val targetBedMin: Int,
     val targetWakeMin: Int,
+    /** Soirée exceptionnelle (concert, voyage…) : ni pénalité de régularité, ni série cassée. */
+    val exceptional: Boolean = false,
 ) {
     val bedDeviation: Int get() = TimeMath.diff(bedtimeMin, targetBedMin)
     val healthyDuration: Boolean get() = totalSleepMin in 420..540
@@ -27,6 +29,9 @@ data class NightSummary(
     val beforeMidnight: Boolean get() = bedtimeMin in (18 * 60) until TimeMath.DAY
     val wokeOnTime: Boolean get() = TimeMath.absDiff(wakeMin, targetWakeMin) <= 30
 }
+
+/** Soirées exceptionnelles autorisées par semaine. */
+const val EXCEPTIONAL_NIGHTS_PER_WEEK = 2
 
 object WeekKey {
     fun of(epochDay: Long): Int {
@@ -101,6 +106,10 @@ object StreakManager {
 
         if (last != null && night.nightDay <= last) {
             return StreakResult(state, freezeUsed = false, extended = false, broken = false)
+        }
+        // Soirée exceptionnelle : la série est mise en pause (ni +1, ni cassée).
+        if (night.exceptional) {
+            return StreakResult(state.copy(lastNightDay = night.nightDay), freezeUsed = false, extended = false, broken = false)
         }
 
         if (!night.regular) {

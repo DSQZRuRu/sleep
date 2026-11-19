@@ -18,12 +18,13 @@ class SleepRepository(private val dao: SleepDao) {
 
     suspend fun startSession(
         start: Long, micEnabled: Boolean, alarmTarget: Long?, targetBed: Int, targetWake: Int,
-        ritualDone: Boolean = false, isNap: Boolean = false,
+        ritualDone: Boolean = false, isNap: Boolean = false, autoStarted: Boolean = false,
     ): Long =
         dao.insertSession(
             SleepSessionEntity(
                 startTime = start, micEnabled = micEnabled, alarmTargetTime = alarmTarget,
                 targetBedMin = targetBed, targetWakeMin = targetWake, ritualDone = ritualDone, isNap = isNap,
+                autoStarted = autoStarted,
             )
         )
 

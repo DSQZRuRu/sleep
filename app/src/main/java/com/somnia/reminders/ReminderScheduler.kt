@@ -40,6 +40,22 @@ class ReminderScheduler(
             cancel(REQ_BEDTIME, ReminderReceiver.ACTION_BEDTIME)
         }
 
+        // Suivi automatique : 30 min avant le coucher, et/ou dès le branchement à partir de 3 h avant.
+        if (s.autoAtBedtime) setExact(NightPlanner.nextOccurrence(bed - AUTO_BEFORE_BED_MIN), REQ_AUTO, ReminderReceiver.ACTION_AUTO_START)
+        else cancel(REQ_AUTO, ReminderReceiver.ACTION_AUTO_START)
+        if (s.autoOnCharge) {
+            val next = NightPlanner.nextOccurrence(bed - CHARGE_WATCH_BEFORE_MIN)
+            setExact(next, REQ_CHARGE_START, ReminderReceiver.ACTION_CHARGE_WATCH_START)
+            val tonight = next - DAY_MS
+            val now = System.currentTimeMillis()
+            if (now in tonight until tonight + CHARGE_WATCH_DURATION_MS && prefs.chargeWatchUntil < now) {
+                startChargeWatch(tonight + CHARGE_WATCH_DURATION_MS)
+            }
+        } else {
+            cancel(REQ_CHARGE_START, ReminderReceiver.ACTION_CHARGE_WATCH_START)
+            stopChargeWatch()
+        }
+
         if (s.smartEnabled) {
             val nextStart = NightPlanner.nextOccurrence(bed - WATCH_BEFORE_MIN)
             setExact(nextStart, REQ_WATCH_START, ReminderReceiver.ACTION_WATCH_START)
@@ -63,6 +79,19 @@ class ReminderScheduler(
         if (!t.isAfter(now)) t = t.plusWeeks(1)
         return t.toInstant().toEpochMilli()
     }
+
+    fun startChargeWatch(until: Long) {
+        prefs.chargeWatchUntil = until
+        scheduleChargePoll(0)
+    }
+
+    fun stopChargeWatch() {
+        prefs.chargeWatchUntil = 0L
+        cancel(REQ_CHARGE_POLL, ReminderReceiver.ACTION_CHARGE_POLL)
+    }
+
+    fun scheduleChargePoll(delayMs: Long = CHARGE_POLL_MS) =
+        setExact(System.currentTimeMillis() + delayMs, REQ_CHARGE_POLL, ReminderReceiver.ACTION_CHARGE_POLL)
 
     fun startWatch(until: Long) {
         prefs.watchUntil = until
@@ -100,6 +129,13 @@ class ReminderScheduler(
         private const val REQ_WATCH_START = 51
         private const val REQ_POLL = 52
         private const val REQ_WEEKLY = 53
+        private const val REQ_AUTO = 54
+        private const val REQ_CHARGE_START = 55
+        private const val REQ_CHARGE_POLL = 56
+        const val AUTO_BEFORE_BED_MIN = 30
+        const val CHARGE_WATCH_BEFORE_MIN = 180
+        const val CHARGE_WATCH_DURATION_MS = 7 * 3_600_000L
+        const val CHARGE_POLL_MS = 3 * 60_000L
         const val WATCH_BEFORE_MIN = 30
         const val WATCH_DURATION_MS = 150 * 60_000L
         const val POLL_INTERVAL_MS = 2 * 60_000L

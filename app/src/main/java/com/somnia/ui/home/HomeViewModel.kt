@@ -95,6 +95,26 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
         viewModelScope.launch { c.gameRepository.addStardust(15) }
     }
 
+    // ---------- Soirée exceptionnelle ----------
+    val exceptionalDays: StateFlow<Set<Long>> = c.reminderPrefs.exceptionalDays
+
+    /** Le « soir » en cours : avant midi, on est encore dans la nuit de la veille (ex. 3 h du matin). */
+    fun tonight(): Long = Clock.nightDay(System.currentTimeMillis())
+
+    fun exceptionalUsedThisWeek(days: Set<Long>): Int {
+        val week = com.somnia.domain.game.WeekKey.of(tonight())
+        return days.count { com.somnia.domain.game.WeekKey.of(it) == week }
+    }
+
+    fun setExceptionalTonight(on: Boolean) {
+        c.reminderPrefs.setExceptional(tonight(), on)
+        // Un suivi automatique déjà lancé ce soir est annulé : vous veillez.
+        val status = com.somnia.tracking.TrackingState.status.value
+        if (on && status.running && status.auto) {
+            c.appContext.startService(com.somnia.tracking.SleepTrackingService.cancelIntent(c.appContext))
+        }
+    }
+
     fun setAlarmTonight(v: Boolean) { alarmTonight.value = v }
 
     fun setWakeTime(minutes: Int) {

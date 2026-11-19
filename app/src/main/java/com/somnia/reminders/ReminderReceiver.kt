@@ -29,6 +29,15 @@ class ReminderReceiver : BroadcastReceiver() {
                         container.reminderScheduler.reschedule()
                     }
                     ACTION_WATCH_POLL -> onPoll(context, container)
+                    ACTION_AUTO_START -> {
+                        tryAutoStart(context, container)
+                        container.reminderScheduler.reschedule()
+                    }
+                    ACTION_CHARGE_WATCH_START -> {
+                        container.reminderScheduler.startChargeWatch(System.currentTimeMillis() + ReminderScheduler.CHARGE_WATCH_DURATION_MS)
+                        container.reminderScheduler.reschedule()
+                    }
+                    ACTION_CHARGE_POLL -> onChargePoll(context, container)
                     ACTION_WEEKLY -> {
                         Notifications.post(context, Notifications.ID_WEEKLY, Notifications.weeklyRecap(context))
                         container.reminderScheduler.reschedule()
@@ -41,7 +50,8 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     private suspend fun onBedtime(context: Context, c: AppContainer) {
-        if (!isTrackingOrTrackedTonight(c)) {
+        val exceptional = c.reminderPrefs.isExceptional(Clock.nightDay(System.currentTimeMillis()))
+        if (!exceptional && !isTrackingOrTrackedTonight(c)) {
             val loud = c.reminderPrefs.settings.value.loud
             Notifications.post(context, Notifications.ID_REMINDER, Notifications.bedtimeReminder(context, smart = false, loud = loud))
         }
@@ -59,7 +69,7 @@ class ReminderReceiver : BroadcastReceiver() {
         val now = System.currentTimeMillis()
         if (now > prefs.watchUntil || !prefs.settings.value.smartEnabled) { scheduler.stopWatch(); return }
         val night = Clock.nightDay(now)
-        if (prefs.lastSmartNight == night || isTrackingOrTrackedTonight(c)) { scheduler.stopWatch(); return }
+        if (prefs.lastSmartNight == night || prefs.isExceptional(night) || isTrackingOrTrackedTonight(c)) { scheduler.stopWatch(); return }
 
         val screenOff = !(context.getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
         val offSince = c.usageDetector.screenOffSince(now)
@@ -81,6 +91,34 @@ class ReminderReceiver : BroadcastReceiver() {
         }
     }
 
+    /** Surveillance du branchement : dès que le téléphone charge le soir, le suivi automatique démarre. */
+    private suspend fun onChargePoll(context: Context, c: AppContainer) {
+        val scheduler = c.reminderScheduler
+        if (System.currentTimeMillis() > c.reminderPrefs.chargeWatchUntil || !c.reminderPrefs.settings.value.autoOnCharge) {
+            scheduler.stopChargeWatch(); return
+        }
+        if (isTrackingOrTrackedTonight(c)) { scheduler.stopChargeWatch(); return }
+        val charging = (context.getSystemService(Context.BATTERY_SERVICE) as android.os.BatteryManager).isCharging
+        if (charging) {
+            tryAutoStart(context, c)
+            scheduler.stopChargeWatch()
+        } else {
+            scheduler.scheduleChargePoll()
+        }
+    }
+
+    /** Démarre le suivi automatique si rien ne s'y oppose (nuit déjà suivie, soirée exceptionnelle…). */
+    private suspend fun tryAutoStart(context: Context, c: AppContainer) {
+        if (!c.profileRepository.get().onboardingDone) return
+        if (c.reminderPrefs.isExceptional(Clock.nightDay(System.currentTimeMillis()))) return
+        if (isTrackingOrTrackedTonight(c)) return
+        if (!com.somnia.tracking.SleepTrackingService.startAuto(context)) {
+            // Android a refusé le démarrage en arrière-plan : on rappelle de lancer la nuit.
+            Notifications.post(context, Notifications.ID_REMINDER,
+                Notifications.bedtimeReminder(context, smart = false, loud = c.reminderPrefs.settings.value.loud))
+        }
+    }
+
     private suspend fun isTrackingOrTrackedTonight(c: AppContainer): Boolean {
         if (TrackingState.status.value.running) return true
         if (c.sleepRepository.openSession() != null) return true
@@ -93,6 +131,9 @@ class ReminderReceiver : BroadcastReceiver() {
         const val ACTION_WATCH_START = "com.somnia.reminders.WATCH_START"
         const val ACTION_WATCH_POLL = "com.somnia.reminders.WATCH_POLL"
         const val ACTION_WEEKLY = "com.somnia.reminders.WEEKLY"
+        const val ACTION_AUTO_START = "com.somnia.reminders.AUTO_START"
+        const val ACTION_CHARGE_WATCH_START = "com.somnia.reminders.CHARGE_WATCH_START"
+        const val ACTION_CHARGE_POLL = "com.somnia.reminders.CHARGE_POLL"
     }
 }
 

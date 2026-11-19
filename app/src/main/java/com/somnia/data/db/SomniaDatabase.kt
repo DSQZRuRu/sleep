@@ -30,7 +30,7 @@ abstract class SomniaDatabase : RoomDatabase() {
     abstract fun gameDao(): GameDao
 
     companion object {
-        const val VERSION = 6
+        const val VERSION = 7
         const val NAME = "somnia.db"
 
         /** v2 : Éclat de rêve, poussière d'étoiles, niveaux et lit des créatures, événements. */
@@ -106,9 +106,17 @@ abstract class SomniaDatabase : RoomDatabase() {
             }
         }
 
+        /** v7 : suivi automatique et soirées exceptionnelles. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE sleep_sessions ADD COLUMN autoStarted INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE sleep_sessions ADD COLUMN exceptional INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun create(context: Context): SomniaDatabase =
             Room.databaseBuilder(context, SomniaDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build()
     }
 }

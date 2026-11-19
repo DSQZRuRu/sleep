@@ -48,8 +48,9 @@ class HistoryViewModel(private val c: AppContainer) : ViewModel() {
             )
         }
         val inWeek = sessions.filter { Clock.nightDay(it.startTime) in days }
-        val reg = if (inWeek.size >= 2) RegularityCalculator.compute(
-            inWeek.map { Clock.minuteOfDay(it.startTime) }, inWeek.map { Clock.minuteOfDay(it.wakeTime) },
+        val forRegularity = inWeek.filter { !it.exceptional }
+        val reg = if (forRegularity.size >= 2) RegularityCalculator.compute(
+            forRegularity.map { Clock.minuteOfDay(it.startTime) }, forRegularity.map { Clock.minuteOfDay(it.wakeTime) },
         ) else null
         HistoryUi(
             sessions = sessions,
@@ -59,7 +60,7 @@ class HistoryViewModel(private val c: AppContainer) : ViewModel() {
             avgScore = if (inWeek.isEmpty()) 0 else inWeek.sumOf { it.score } / inWeek.size,
             weekOffset = off,
             jetlag = com.somnia.domain.sleep.SocialJetlag.compute(
-                sessions.filter { Clock.nightDay(it.startTime) >= today - 14 && it.hasStages }.map {
+                sessions.filter { Clock.nightDay(it.startTime) >= today - 14 && it.hasStages && !it.exceptional }.map {
                     com.somnia.domain.sleep.SocialJetlag.Night(
                         LocalDate.ofEpochDay(Clock.nightDay(it.startTime)).dayOfWeek.value,
                         Clock.minuteOfDay(it.startTime), Clock.minuteOfDay(it.wakeTime),

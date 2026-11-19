@@ -98,6 +98,19 @@ fun SettingsScreen(vm: SettingsViewModel, updates: UpdateViewModel, onBack: () -
         }
 
         SomniaCard {
+            SectionLabel("Suivi automatique")
+            ToggleRow("Démarrer 30 min avant le coucher idéal", r.autoAtBedtime) { v -> vm.updateReminders { it.copy(autoAtBedtime = v) } }
+            ToggleRow("Démarrer quand je branche le téléphone le soir", r.autoOnCharge) { v -> vm.updateReminders { it.copy(autoOnCharge = v) } }
+            Text(
+                "Le suivi se lance tout seul ; tant que vous utilisez le téléphone, rien ne compte. La nuit commence quand vous le lâchez, " +
+                    "et se termine seule le matin (réveil coupé, ou 15 min d'utilisation après au moins 3 h de sommeil, " +
+                    "au plus tard 3 h après l'heure de lever). Sans vrai sommeil, la session est effacée. " +
+                    "Le branchement est surveillé à partir de 3 h avant le coucher. Android ne permet pas le micro en démarrage automatique.",
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+            )
+        }
+
+        SomniaCard {
             SectionLabel("Rappels du soir")
             ToggleRow("Rappel à l'heure du coucher", r.bedtimeEnabled) { v -> vm.updateReminders { it.copy(bedtimeEnabled = v) } }
             if (r.bedtimeEnabled) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

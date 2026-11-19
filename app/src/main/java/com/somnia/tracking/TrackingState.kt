@@ -15,6 +15,8 @@ data class TrackingStatus(
     val finishing: Boolean = false,
     /** Durée choisie si c'est une sieste (null = nuit). */
     val napMinutes: Int? = null,
+    /** Lancé automatiquement : la nuit ne commence qu'une fois le téléphone lâché. */
+    val auto: Boolean = false,
 )
 
 /** État partagé en mémoire entre le service, l'alarme et l'interface. */

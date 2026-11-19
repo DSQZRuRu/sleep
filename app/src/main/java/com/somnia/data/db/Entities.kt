@@ -50,6 +50,10 @@ data class SleepSessionEntity(
      * récompenses de la nuit attendent sa réponse.
      */
     val startCandidate: Long? = null,
+    /** Suivi lancé automatiquement (heure de coucher ou branchement du téléphone). */
+    val autoStarted: Boolean = false,
+    /** Soirée exceptionnelle : pas de pénalité de régularité, série en pause. */
+    val exceptional: Boolean = false,
 )
 
 @Entity(

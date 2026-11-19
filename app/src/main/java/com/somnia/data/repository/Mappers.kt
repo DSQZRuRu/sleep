@@ -44,4 +44,5 @@ fun SleepSessionEntity.toSummary(): NightSummary = NightSummary(
     restless = restless,
     targetBedMin = targetBedMin,
     targetWakeMin = targetWakeMin,
+    exceptional = exceptional,
 )

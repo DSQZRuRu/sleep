@@ -148,6 +148,10 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
             }
         }
 
+        if (session.exceptional) Text("✦ Soirée exceptionnelle : série en pause, aucune pénalité de régularité.",
+            style = MaterialTheme.typography.bodySmall, color = SomniaColors.Gold)
+        if (session.autoStarted) Text("☾ Nuit suivie automatiquement, à partir du moment où vous avez lâché le téléphone.",
+            style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
         AnimatedVisibility(phase >= 2, enter = fadeIn() + slideInVertically { it / 3 }) {
             SomniaCard {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

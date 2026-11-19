@@ -226,3 +226,41 @@ class CreatureStarsTest {
         assertEquals(18, com.somnia.domain.game.CreatureProgression.bonusPct(c, 1, 2))
     }
 }
+
+class ExceptionalNightTest {
+    @Test
+    fun exceptionalNightPausesStreak() {
+        fun n(day: Long, bed: Int, exc: Boolean = false) = com.somnia.domain.game.NightSummary(
+            day, day, bed, 7 * 60, 450, 0.9f, 80, 0.18f, false, 23 * 60, 7 * 60, exceptional = exc,
+        )
+        var s = com.somnia.domain.game.StreakState()
+        s = com.somnia.domain.game.StreakManager.apply(s, n(10, 23 * 60)).state
+        s = com.somnia.domain.game.StreakManager.apply(s, n(11, 23 * 60)).state
+        val r = com.somnia.domain.game.StreakManager.apply(s, n(12, 7 * 60, exc = true)) // coucher à 7 h, exceptionnel
+        assertEquals(2, r.state.current)
+        assertFalse(r.broken)
+        val next = com.somnia.domain.game.StreakManager.apply(r.state, n(13, 23 * 60))
+        assertEquals(3, next.state.current)
+    }
+}
+
+class AutoNightTrimmerTest {
+    private val A = com.somnia.domain.sleep.SleepStage.AWAKE
+    private val L = com.somnia.domain.sleep.SleepStage.LIGHT
+
+    @Test
+    fun ignoresStillPhoneBeforeRealNight() {
+        // 0-179 : téléphone immobile (pris pour du sommeil), 180-209 : usage, 210-689 : vraie nuit
+        val stages = List(180) { L } + List(30) { A } + List(480) { L }
+        val used = List(690) { it in 180..209 }
+        assertEquals(209, com.somnia.domain.sleep.AutoNightTrimmer.startIndex(stages, used))
+    }
+
+    @Test
+    fun keepsNightWithShortWakeUp() {
+        // nuit avec un réveil de 8 min au milieu (coup d'œil au téléphone)
+        val stages = List(15) { A } + List(170) { L } + List(8) { A } + List(280) { L }
+        val used = List(stages.size) { it == 10 || it in 186..190 }
+        assertEquals(10, com.somnia.domain.sleep.AutoNightTrimmer.startIndex(stages, used))
+    }
+}

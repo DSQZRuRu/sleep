@@ -141,7 +141,7 @@ object Notifications {
             .setContentIntent(openAppIntent(context, com.somnia.ui.navigation.PendingNav.RECAP))
             .build()
 
-    fun tracking(context: Context, alarmAt: Long?, micActive: Boolean): Notification {
+    fun tracking(context: Context, alarmAt: Long?, micActive: Boolean, auto: Boolean = false): Notification {
         val stop = PendingIntent.getService(
             context, 11, SleepTrackingService.stopIntent(context),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
@@ -150,12 +150,22 @@ object Notifications {
             ?: "Sans réveil"
         return NotificationCompat.Builder(context, CHANNEL_TRACKING)
             .setSmallIcon(R.drawable.ic_moon)
-            .setContentTitle("Somnia veille sur votre nuit")
+            .setContentTitle(if (auto) "Somnia attend que vous dormiez ☾" else "Somnia veille sur votre nuit")
             .setContentText(if (micActive) "$alarmText · micro actif (rien n'est enregistré)" else alarmText)
             .setOngoing(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_STATUS)
             .setContentIntent(openAppIntent(context))
+            .apply {
+                if (auto) {
+                    val cancel = PendingIntent.getService(
+                        context, 12, SleepTrackingService.cancelIntent(context),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+                    setContentText("Suivi automatique : la nuit commencera quand vous lâcherez le téléphone.")
+                    addAction(0, "Pas ce soir", cancel)
+                }
+            }
             .addAction(0, "Terminer la nuit", stop)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()

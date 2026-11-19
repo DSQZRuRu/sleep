@@ -19,7 +19,8 @@ object WeeklyRecapCalculator {
         val n = nights.size
         val avgSleep = if (n == 0) 0 else nights.sumOf { it.totalSleepMin } / n
         val avgScore = if (n == 0) 0 else nights.sumOf { it.score } / n
-        val reg = if (n >= 2) RegularityCalculator.compute(nights.map { it.bedtimeMin }, nights.map { it.wakeMin }).score else null
+        val regular = nights.filter { !it.exceptional }
+        val reg = if (regular.size >= 2) RegularityCalculator.compute(regular.map { it.bedtimeMin }, regular.map { it.wakeMin }).score else null
         val healthy = nights.count { it.healthyDuration }
         val message = when {
             n == 0 -> "Aucune nuit suivie cette semaine. Brumi vous attend ce soir !"

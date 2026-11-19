@@ -67,6 +67,9 @@ interface SleepDao {
     @Query("SELECT * FROM epochs WHERE sessionId = :sessionId ORDER BY timestamp ASC")
     suspend fun epochs(sessionId: Long): List<EpochEntity>
 
+    @Query("DELETE FROM epochs WHERE sessionId = :sessionId AND timestamp < :before")
+    suspend fun deleteEpochsBefore(sessionId: Long, before: Long)
+
     @Query("SELECT * FROM epochs WHERE sessionId = :sessionId ORDER BY timestamp DESC LIMIT :limit")
     suspend fun lastEpochs(sessionId: Long, limit: Int): List<EpochEntity>
 }

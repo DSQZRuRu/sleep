@@ -23,6 +23,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -108,6 +112,46 @@ fun HomeScreen(
                 if (bed.isEmpty()) "Touchez la chambre pour la décorer, et installez des créatures depuis le Carnet."
                 else "Dans le lit : " + bed.joinToString(" · ") { "${it.creature.name} ${it.creature.bonus.symbol}+${it.bonusPct} %" },
                 style = MaterialTheme.typography.bodySmall, color = SomniaColors.Lavender,
+            )
+        }
+
+        // Soirée exceptionnelle (2 par semaine)
+        val excDays by vm.exceptionalDays.collectAsStateWithLifecycle()
+        val excTonight = vm.tonight() in excDays
+        val excUsed = vm.exceptionalUsedThisWeek(excDays)
+        var confirmExc by remember { mutableStateOf(false) }
+        SomniaCard(accent = if (excTonight) SomniaColors.Gold else SomniaColors.Lavender) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    SectionLabel(if (excTonight) "✦ Soirée exceptionnelle ce soir" else "Soirée exceptionnelle")
+                    Text(
+                        if (excTonight) "Profitez ! Pas de rappel, pas de réveil imposé ; votre nuit, même décalée, ne pénalise ni la régularité ni la série."
+                        else "Concert, voyage, soirée… Déclarez-la : votre sommeil décalé ne cassera ni la série ni la régularité. " +
+                            "${com.somnia.domain.game.EXCEPTIONAL_NIGHTS_PER_WEEK - excUsed} restante(s) cette semaine.",
+                        style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+                    )
+                }
+            }
+            if (excTonight) {
+                TextButton(onClick = { vm.setExceptionalTonight(false) }) { Text("Annuler la soirée exceptionnelle") }
+            } else {
+                OutlinedButton(
+                    onClick = { confirmExc = true },
+                    enabled = excUsed < com.somnia.domain.game.EXCEPTIONAL_NIGHTS_PER_WEEK,
+                ) { Text("Cette nuit, je veille") }
+            }
+        }
+        if (confirmExc) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { confirmExc = false },
+                title = { Text("Soirée exceptionnelle ?") },
+                text = {
+                    Text("Pour cette nuit : rappels et suivi automatique coupés, pas de réveil imposé. " +
+                        "Quand vous dormirez (même à 7 h), la nuit comptera pour ce soir, sans pénalité de régularité, " +
+                        "et votre série sera mise en pause plutôt que cassée. Les récompenses du sommeil restent acquises.")
+                },
+                confirmButton = { TextButton(onClick = { confirmExc = false; vm.setExceptionalTonight(true) }) { Text("C'est parti") } },
+                dismissButton = { TextButton(onClick = { confirmExc = false }) { Text("Annuler") } },
             )
         }
 

@@ -48,6 +48,14 @@ import com.somnia.ui.onboarding.OnboardingViewModel
 import com.somnia.ui.settings.SettingsScreen
 import com.somnia.ui.settings.SettingsViewModel
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.dp
+import com.somnia.ui.theme.SomniaColors
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import com.somnia.ui.game.GameNavBar
 import com.somnia.ui.game.NavItem
@@ -83,6 +91,8 @@ fun SomniaRoot(container: AppContainer) {
     val pending by container.sleepRepository.pendingReveal.collectAsStateWithLifecycle(null)
     val game by container.gameRepository.state.collectAsStateWithLifecycle(GameStateEntity())
 
+    var showNight by remember { mutableStateOf(false) }
+    LaunchedEffect(tracking.running) { if (!tracking.running) showNight = false }
     val p = profile
     when {
         p == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
@@ -90,18 +100,19 @@ fun SomniaRoot(container: AppContainer) {
             val vm = containerViewModel { OnboardingViewModel(container.profileRepository, container.backupManager, container.appContext) }
             OnboardingScreen(vm, onDone = {})
         }
-        tracking.running -> TrackingScreen(tracking, CompanionStage.forCare(game.companionCare))
+        // Suivi automatique : l'app reste utilisable ; l'écran de nuit s'affiche sur demande.
+        tracking.running && (!tracking.auto || showNight) -> TrackingScreen(tracking, CompanionStage.forCare(game.companionCare))
         pending != null -> {
             val id = pending!!.id
             val vm = containerViewModel(key = "morning-$id") { MorningViewModel(container, id) }
             MorningScreen(vm, onDone = {})
         }
-        else -> MainNavigation(container)
+        else -> MainNavigation(container, autoTracking = tracking.running && tracking.auto, onShowNight = { showNight = true })
     }
 }
 
 @Composable
-private fun MainNavigation(container: AppContainer) {
+private fun MainNavigation(container: AppContainer, autoTracking: Boolean = false, onShowNight: () -> Unit = {}) {
     val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
@@ -128,7 +139,12 @@ private fun MainNavigation(container: AppContainer) {
 
     Scaffold(
         containerColor = Color.Transparent,
-        topBar = { UpdateBanner(updates) },
+        topBar = {
+            androidx.compose.foundation.layout.Column {
+                UpdateBanner(updates)
+                if (autoTracking) AutoTrackingBanner(onShowNight)
+            }
+        },
         bottomBar = {
             if (showBar) GameNavBar(
                 Tab.entries.map { tab ->
@@ -191,6 +207,28 @@ private fun MainNavigation(container: AppContainer) {
                 val id = entry.arguments?.getLong("id") ?: 0L
                 NightDetailScreen(containerViewModel(key = "night-$id") { NightDetailViewModel(container, id) }, onBack = { nav.popBackStack() })
             }
+        }
+    }
+}
+
+
+/** Bandeau du suivi automatique : la nuit commencera quand le téléphone sera lâché. */
+@Composable
+private fun AutoTrackingBanner(onShowNight: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    androidx.compose.foundation.layout.Column(
+        Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 12.dp, vertical = 6.dp)
+            .background(SomniaColors.SurfaceHigh, androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        Text("☾ Suivi automatique actif", style = androidx.compose.material3.MaterialTheme.typography.titleSmall)
+        Text("La nuit commencera quand vous lâcherez le téléphone. Utilisez-le librement en attendant.",
+            style = androidx.compose.material3.MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+        androidx.compose.foundation.layout.Row {
+            androidx.compose.material3.TextButton(onClick = onShowNight) { Text("Écran de nuit") }
+            androidx.compose.material3.TextButton(onClick = {
+                context.startService(com.somnia.tracking.SleepTrackingService.cancelIntent(context))
+            }) { Text("Pas ce soir") }
         }
     }
 }
