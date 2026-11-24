@@ -171,15 +171,20 @@ fun JournalScreen(vm: JournalViewModel) {
                         Text("${ui.level.level}", style = MaterialTheme.typography.displayMedium, color = SomniaColors.Gold)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        SectionLabel("Série")
-                        Text("🔥 ${ui.game.streak}", style = MaterialTheme.typography.displayMedium)
-                        Text("Record : ${ui.game.bestStreak}", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
+                        SectionLabel("Séries")
+                        Text("🔥 ${ui.game.streak}  📅 ${ui.tracking.current}", style = MaterialTheme.typography.headlineMedium)
+                        Text("Records : ${ui.game.bestStreak} régulières · ${ui.tracking.best} suivies", style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
                     }
                 }
                 ProgressBar(ui.level.xpIntoLevel / ui.level.xpForLevel.toFloat(), color = SomniaColors.Gold)
                 Text("${ui.level.xpIntoLevel} / ${ui.level.xpForLevel} XP · place de lit suivante au niveau ${
                     if (ui.slotsUnlocked < 3) CreatureProgression.levelForSlot(ui.slotsUnlocked) else "—"}",
                     style = MaterialTheme.typography.labelSmall, color = SomniaColors.Muted)
+                Text(
+                    "🔥 Série régulière : au moins 6 h de sommeil et coucher à ±45 min de l'heure idéale ou de votre heure habituelle. " +
+                        "📅 Série de suivi : nuits enregistrées d'affilée.",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+                )
                 Text(
                     if (ui.freezeAvailable) "🛡 Protection disponible : une nuit ratée cette semaine ne cassera pas votre série."
                     else "🛡 Protection utilisée cette semaine. Elle revient lundi.",

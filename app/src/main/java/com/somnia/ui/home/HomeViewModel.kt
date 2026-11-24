@@ -41,6 +41,7 @@ data class HomeUi(
     val alarmTonight: Boolean = true,
     val usageEstimate: PhoneUsageDetector.Estimate? = null,
     val debt: com.somnia.domain.sleep.SleepDebt.Result? = null,
+    val trackingStreak: Int = 0,
 )
 
 class HomeViewModel(private val c: AppContainer) : ViewModel() {
@@ -78,6 +79,9 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
             tip = SleepTipsCatalog.tipOfTheDay(Clock.today()),
             alarmTonight = alarm,
             usageEstimate = estimate,
+            trackingStreak = com.somnia.domain.game.TrackingStreak.compute(
+                history.map { Clock.nightDay(it.startTime) }.toSet(), Clock.today(),
+            ).current,
             debt = history.take(7).takeIf { it.size >= 3 }?.let { nights ->
                 com.somnia.domain.sleep.SleepDebt.compute(
                     nights.map { it.totalSleepMin },

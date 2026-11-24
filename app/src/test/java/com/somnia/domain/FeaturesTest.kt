@@ -283,3 +283,30 @@ class NightMergerTest {
         assertEquals(1, m.analysis.awakenings) // le réveil de l'alarme (5 + 15 min)
     }
 }
+
+class StreakRulesTest {
+    private fun n(day: Long, bed: Int, sleep: Int = 420) = com.somnia.domain.game.NightSummary(
+        day, day, bed, 9 * 60, sleep, 0.9f, 70, 0.15f, false, 0, 8 * 60,
+    )
+
+    @Test
+    fun lateButStableRhythmCountsAsRegular() {
+        // coucher idéal minuit, mais coucher stable vers 1 h 45 : régulier grâce à l'habitude
+        val nights = (1L..10L).map { n(it, 105 + (it % 3).toInt() * 10) }
+        val s = com.somnia.domain.game.StreakReplay.replay(nights)
+        assertTrue("série ${s.current}", s.current >= 7)
+    }
+
+    @Test
+    fun shortNightsAreNotRegular() {
+        val nights = (1L..6L).map { n(it, 0, sleep = 240) }
+        assertEquals(0, com.somnia.domain.game.StreakReplay.replay(nights).current)
+    }
+
+    @Test
+    fun trackingStreakCountsConsecutiveRecordedNights() {
+        val r = com.somnia.domain.game.TrackingStreak.compute((1L..14L).toSet() - 5L, today = 15)
+        assertEquals(9, r.current)
+        assertEquals(9, r.best)
+    }
+}

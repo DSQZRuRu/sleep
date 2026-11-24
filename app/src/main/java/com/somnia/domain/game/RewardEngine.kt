@@ -18,6 +18,8 @@ data class GameSnapshot(
     val maxCreatureLevel: Int = 1,
     /** Étoiles et doublons en réserve, par créature possédée. */
     val stars: Map<String, Pair<Int, Int>> = emptyMap(),
+    /** Nuits enregistrées d'affilée (série de suivi). */
+    val trackingStreak: Int = 0,
 )
 
 data class NightRewards(
@@ -168,6 +170,7 @@ object RewardEngine {
             bestDream = maxOf(snapshot.bestDream, dream.total),
             eventCreatureIds = (snapshot.ownedCreatureIds + newIds).filter { DreamCreatureCatalog.byId(it)?.eventId != null }.toSet(),
             regionsCompleted = expedition.regionIndex + exp.completed.size,
+            trackingStreak = snapshot.trackingStreak,
             maxStars = (snapshot.stars.mapValues { it.value.first } + starUpdates.mapValues { it.value.stars }).values.maxOrNull() ?: 0,
         )
         val newBadges = BadgeCatalog.earned(ctx).filter { it !in snapshot.unlockedBadges }.mapNotNull { BadgeCatalog.byId(it) }

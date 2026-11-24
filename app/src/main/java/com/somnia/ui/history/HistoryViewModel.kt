@@ -136,6 +136,7 @@ class NightDetailViewModel(private val c: AppContainer, private val id: Long) : 
     fun delete() {
         viewModelScope.launch {
             c.sleepRepository.delete(id)
+            c.nightProcessor.recomputeStreak()
             _ui.value = _ui.value.copy(deleted = true)
         }
     }

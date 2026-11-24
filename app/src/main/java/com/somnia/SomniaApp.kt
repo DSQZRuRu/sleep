@@ -23,6 +23,14 @@ class SomniaApp : Application() {
         appScope.launch {
             if (container.profileRepository.get().onboardingDone) container.backupManager.autoBackup()
         }
+        // Nouvelle règle de série (régularité par rapport à l'heure habituelle) : recalcul une fois.
+        appScope.launch {
+            val prefs = getSharedPreferences("migrations", MODE_PRIVATE)
+            if (!prefs.getBoolean("streak_rules_v2", false)) {
+                runCatching { container.nightProcessor.recomputeStreak() }
+                prefs.edit().putBoolean("streak_rules_v2", true).apply()
+            }
+        }
         // Le widget suit l'état du suivi (nuit en cours ou non).
         appScope.launch {
             com.somnia.tracking.TrackingState.status.collectLatest { com.somnia.widget.SomniaWidget.refresh(this@SomniaApp) }

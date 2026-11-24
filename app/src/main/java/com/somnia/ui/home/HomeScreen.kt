@@ -80,7 +80,7 @@ fun HomeScreen(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        GameHud(ui.level, ui.game.streak, ui.game.stardust, ui.stage, ui.mood, onSettings = onSettings)
+        GameHud(ui.level, ui.game.streak, ui.game.stardust, ui.stage, ui.mood, trackingStreak = ui.trackingStreak, onSettings = onSettings)
 
         event?.let { e ->
             val accent = Color(e.accent)

@@ -20,11 +20,19 @@ data class NightSummary(
     val targetWakeMin: Int,
     /** Soirée exceptionnelle (concert, voyage…) : ni pénalité de régularité, ni série cassée. */
     val exceptional: Boolean = false,
+    /** Heure de coucher habituelle (moyenne des 7 nuits précédentes), si connue. */
+    val habitualBedMin: Int? = null,
 ) {
     val bedDeviation: Int get() = TimeMath.diff(bedtimeMin, targetBedMin)
     val healthyDuration: Boolean get() = totalSleepMin in 420..540
-    /** Nuit "régulière" : coucher à ±45 min de la cible et au moins 6 h de sommeil réel. */
-    val regular: Boolean get() = kotlin.math.abs(bedDeviation) <= 45 && totalSleepMin >= 360
+    /**
+     * Nuit « régulière » : au moins 6 h de sommeil réel, et coucher à ±45 min de l'heure idéale
+     * OU de votre heure de coucher habituelle (un rythme tardif mais stable compte comme régulier).
+     */
+    val regular: Boolean get() = totalSleepMin >= 360 && (
+        kotlin.math.abs(bedDeviation) <= 45 ||
+            (habitualBedMin != null && TimeMath.absDiff(bedtimeMin, habitualBedMin) <= 45)
+        )
     /** Coucher avant minuit (heures du soir entre 18 h et 23 h 59). */
     val beforeMidnight: Boolean get() = bedtimeMin in (18 * 60) until TimeMath.DAY
     val wokeOnTime: Boolean get() = TimeMath.absDiff(wakeMin, targetWakeMin) <= 30
@@ -133,5 +141,46 @@ object StreakManager {
             }
             else -> StreakResult(state.copy(current = 1, best = maxOf(state.best, 1), lastNightDay = night.nightDay), false, true, true)
         }
+    }
+}
+
+
+/** Série de suivi : nuits enregistrées d'affilée (suivies, estimées ou ajoutées à la main). */
+object TrackingStreak {
+    data class Result(val current: Int, val best: Int)
+
+    /** @param nightDays soirs (epochDay) ayant au moins une nuit enregistrée. */
+    fun compute(nightDays: Set<Long>, today: Long): Result {
+        // La nuit de ce soir n'existe pas encore : la série en cours se termine hier (ou ce soir si déjà suivie).
+        var day = if (today in nightDays) today else today - 1
+        var current = 0
+        while (day in nightDays) { current++; day-- }
+        var best = 0
+        var run = 0
+        var prev: Long? = null
+        for (d in nightDays.sorted()) {
+            run = if (prev != null && d == prev + 1) run + 1 else 1
+            best = maxOf(best, run)
+            prev = d
+        }
+        return Result(current, best)
+    }
+}
+
+/** Recalcule la série régulière à partir de tout l'historique (nuits triées par soir). */
+object StreakReplay {
+    fun replay(nights: List<NightSummary>): StreakState {
+        var state = StreakState()
+        val sorted = nights.sortedWith(compareBy({ it.nightDay }, { it.sessionId }))
+        val previousBedtimes = ArrayDeque<Int>()
+        for (n in sorted) {
+            val habitual = if (previousBedtimes.size >= 3) TimeMath.circularMean(previousBedtimes.toList()) else null
+            state = StreakManager.apply(state, n.copy(habitualBedMin = habitual)).state
+            if (!n.exceptional) {
+                previousBedtimes.addLast(n.bedtimeMin)
+                if (previousBedtimes.size > 7) previousBedtimes.removeFirst()
+            }
+        }
+        return state
     }
 }

@@ -49,6 +49,7 @@ data class JournalUi(
     val activeEvent: SeasonalEvent? = null,
     val nextEvent: SeasonalEvent? = null,
     val daysToNextEvent: Long = 0,
+    val tracking: com.somnia.domain.game.TrackingStreak.Result = com.somnia.domain.game.TrackingStreak.Result(0, 0),
 ) {
     val discovered get() = creatures.count { it.count > 0 }
     val owned get() = (creatures + eventCreatures).mapNotNull { it.owned }
@@ -90,6 +91,7 @@ class JournalViewModel(private val c: AppContainer) : ViewModel() {
             slotsUnlocked = CreatureProgression.bedSlots(level.level),
             activeEvent = active,
             nextEvent = next,
+            tracking = com.somnia.domain.game.TrackingStreak.compute(b.history.map { Clock.nightDay(it.startTime) }.toSet(), Clock.today()),
             daysToNextEvent = next?.let { java.time.temporal.ChronoUnit.DAYS.between(today, it.nextStart(today)) } ?: 0,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), JournalUi())

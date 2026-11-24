@@ -41,6 +41,7 @@ fun GameHud(
     stage: CompanionStage,
     mood: CompanionMood,
     modifier: Modifier = Modifier,
+    trackingStreak: Int? = null,
     onSettings: (() -> Unit)? = null,
 ) {
     Row(
@@ -66,7 +67,10 @@ fun GameHud(
         }
         Spacer(Modifier.width(8.dp))
         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            ResourceChip("🔥", "$streak", Color(0xFFFF9A5C))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                ResourceChip("🔥", "$streak", Color(0xFFFF9A5C))
+                trackingStreak?.let { ResourceChip("📅", "$it", SomniaColors.Teal) }
+            }
             ResourceChip("✦", "$stardust", SomniaColors.Gold)
         }
         onSettings?.let {

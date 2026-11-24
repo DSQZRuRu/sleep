@@ -18,6 +18,7 @@ data class BadgeContext(
     val eventCreatureIds: Set<String> = emptySet(),
     val regionsCompleted: Int = 0,
     val maxStars: Int = 0,
+    val trackingStreak: Int = 0,
 )
 
 object BadgeCatalog {
@@ -47,6 +48,8 @@ object BadgeCatalog {
         Badge("event_eveil", "Premier bourgeon", "Rencontrer une créature de l'Éveil des Songes", "❀"),
         Badge("event_courtes", "Gardien du solstice", "Rencontrer une créature des Nuits Courtes", "☀"),
         Badge("event_pleinelune", "Enfant de la lune", "Rencontrer Opaline une nuit de pleine lune", "◯"),
+        Badge("track7", "Fidèle au poste", "Enregistrer 7 nuits d'affilée", "📅"),
+        Badge("track30", "Carnet de bord", "Enregistrer 30 nuits d'affilée", "📖"),
         Badge("stars1", "Première étoile", "Faire gagner une étoile à une créature", "☆"),
         Badge("constellation", "Constellation", "Amener une créature à 5 étoiles", "✯"),
         Badge("explorer1", "Premier pas", "Terminer la première région de l'expédition", "⚲"),
@@ -78,6 +81,8 @@ object BadgeCatalog {
         if (ctx.maxCreatureLevel >= 5) add("level5_creature")
         if (ctx.maxCreatureLevel >= 10) add("level10_creature")
         if (ctx.bestDream >= 120) add("dream120")
+        if (ctx.trackingStreak >= 7) add("track7")
+        if (ctx.trackingStreak >= 30) add("track30")
         if (ctx.maxStars >= 1) add("stars1")
         if (ctx.maxStars >= CreatureStars.MAX_STARS) add("constellation")
         if (ctx.regionsCompleted >= 1) add("explorer1")

@@ -221,7 +221,7 @@ fun MorningScreen(vm: MorningViewModel, onDone: () -> Unit) {
                             rewards.freezeUsed -> "🛡 Protection utilisée : votre série de ${rewards.streakAfter} nuits est sauvée."
                             rewards.streakBroken -> "La série repart à ${rewards.streakAfter}. Ce soir, on recommence ensemble."
                             rewards.streakAfter > 0 -> "🔥 ${rewards.streakAfter} nuit${if (rewards.streakAfter > 1) "s" else ""} régulière${if (rewards.streakAfter > 1) "s" else ""} d'affilée"
-                            else -> "Une nuit régulière (coucher à ±45 min de l'heure idéale, 6 h+ de sommeil) lance une série."
+                            else -> "Une nuit régulière (6 h+ de sommeil, coucher à ±45 min de l'heure idéale ou de votre heure habituelle) lance une série."
                         }
                     )
                 }

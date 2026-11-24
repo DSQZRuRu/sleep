@@ -143,7 +143,7 @@ class NightProcessor(
         sleepDao.deleteSession(second.id)
         grantRewards(updated)
         first.id
-    }
+    }.also { recomputeStreak() }
 
     /** Retire les récompenses déjà attribuées à une nuit (avant de la regrouper avec une autre). */
     private suspend fun revertRewards(s: SleepSessionEntity) {
@@ -380,8 +380,29 @@ class NightProcessor(
         )
     }
 
+    /** Heure de coucher habituelle : moyenne des 7 nuits précédentes (hors soirées exceptionnelles). */
+    private suspend fun habitualBedtime(session: SleepSessionEntity): Int? {
+        val previous = sleepDao.recentProcessed(15)
+            .filter { it.id != session.id && !it.exceptional && it.startTime < session.startTime }
+            .take(7)
+        return if (previous.size >= 3) TimeMath.circularMean(previous.map { Clock.minuteOfDay(it.startTime) }) else null
+    }
+
+    /** Recalcule la série régulière sur tout l'historique (après une fusion, une suppression…). */
+    suspend fun recomputeStreak() = db.withTransaction {
+        val nights = sleepDao.processedSince(0L).map { it.toSummary() }
+        val replayed = com.somnia.domain.game.StreakReplay.replay(nights)
+        val state = gameDao.state() ?: GameStateEntity()
+        gameDao.upsertState(
+            state.copy(
+                streak = replayed.current, bestStreak = maxOf(replayed.best, state.bestStreak),
+                lastStreakNightDay = replayed.lastNightDay, freezeUsedWeek = replayed.freezeUsedWeek,
+            )
+        )
+    }
+
     private suspend fun grantRewards(session: SleepSessionEntity): NightRewards {
-        val night = session.toSummary()
+        val night = session.toSummary().copy(habitualBedMin = habitualBedtime(session))
         val week = WeekKey.of(night.nightDay)
         val weekStart = Clock.startOfDayMillis(WeekKey.mondayOf(night.nightDay)) + 12 * 3_600_000L
         val weekNights = sleepDao.processedSince(weekStart)
@@ -420,6 +441,9 @@ class NightProcessor(
             equipped = equipped,
             maxCreatureLevel = progress.maxOfOrNull { it.level } ?: 1,
             stars = progress.associate { it.creatureId to (it.stars to it.shards) },
+            trackingStreak = com.somnia.domain.game.TrackingStreak.compute(
+                sleepDao.processedSince(0L).map { Clock.nightDay(it.startTime) }.toSet(), Clock.today(),
+            ).current,
         )
         val rewards = RewardEngine.process(
             night, weekNights, snapshot, sleepDao.processedCount(), regularity,
