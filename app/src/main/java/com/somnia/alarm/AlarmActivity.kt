@@ -77,6 +77,10 @@ class AlarmActivity : ComponentActivity() {
                     OutlinedButton(onClick = { snooze() }, modifier = Modifier.fillMaxWidth()) {
                         Text("Encore ${SmartAlarmScheduler.SNOOZE_MIN} minutes")
                     }
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedButton(onClick = { backToSleep() }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Je me rendors (réveil oublié)")
+                    }
                 }
             }
         }
@@ -85,6 +89,11 @@ class AlarmActivity : ComponentActivity() {
     private fun dismiss() {
         AlarmController.dismiss(this)
         startActivity(Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP))
+        finish()
+    }
+
+    private fun backToSleep() {
+        AlarmController.backToSleep(this)
         finish()
     }
 

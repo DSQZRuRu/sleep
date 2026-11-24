@@ -118,6 +118,12 @@ class SettingsViewModel(private val c: AppContainer) : ViewModel() {
         _backupMessage.value = if (ok) "Health Connect activé : vos prochaines nuits y seront envoyées ✓" else "Autorisation Health Connect refusée."
     }
 
+    val alarmDays: StateFlow<Set<Int>> = c.reminderPrefs.alarmDays
+    fun toggleAlarmDay(d: Int) {
+        val cur = alarmDays.value
+        c.reminderPrefs.setAlarmDays(if (d in cur) cur - d else cur + d)
+    }
+
     fun redoQuestionnaire() = update { it.copy(onboardingDone = false) }
 
     /** Efface toutes les données locales (nuits, profil, progression). */

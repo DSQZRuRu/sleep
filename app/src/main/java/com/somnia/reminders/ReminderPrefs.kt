@@ -70,6 +70,34 @@ class ReminderPrefs(context: Context) {
         get() = sp.getBoolean("last_poll_off", false)
         set(v) = sp.edit().putBoolean("last_poll_off", v).apply()
 
+    // ---------- Jours du réveil ----------
+    private val _alarmDays = MutableStateFlow(
+        sp.getStringSet("alarm_days", null)?.mapNotNull { it.toIntOrNull() }?.toSet() ?: (1..7).toSet()
+    )
+    /** Matins (1 = lundi … 7 = dimanche) où le réveil sonne. */
+    val alarmDays: StateFlow<Set<Int>> = _alarmDays.asStateFlow()
+
+    fun setAlarmDays(days: Set<Int>) {
+        sp.edit().putStringSet("alarm_days", days.map { it.toString() }.toSet()).apply()
+        _alarmDays.value = days
+    }
+
+    private val _override = MutableStateFlow(sp.getLong("alarm_override_night", -1L) to sp.getBoolean("alarm_override_on", true))
+
+    /** Exception pour une nuit précise (soir = epochDay) : réveil forcé ou supprimé. */
+    val alarmOverride: StateFlow<Pair<Long, Boolean>> = _override.asStateFlow()
+
+    fun setAlarmForNight(evening: Long, on: Boolean) {
+        sp.edit().putLong("alarm_override_night", evening).putBoolean("alarm_override_on", on).apply()
+        _override.value = evening to on
+    }
+
+    /** Le réveil doit-il sonner pour la nuit commencée le soir [evening], le matin [wakeDayOfWeek] ? */
+    fun alarmWanted(evening: Long, wakeDayOfWeek: Int): Boolean {
+        val (night, on) = _override.value
+        return if (night == evening) on else wakeDayOfWeek in _alarmDays.value
+    }
+
     // ---------- Soirées exceptionnelles ----------
     private val _exceptional = MutableStateFlow(readExceptional())
     /** Soirs (epochDay) déclarés « soirée exceptionnelle ». */

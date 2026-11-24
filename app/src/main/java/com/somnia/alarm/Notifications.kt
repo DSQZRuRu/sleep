@@ -166,6 +166,15 @@ object Notifications {
                     addAction(0, "Pas ce soir", cancel)
                 }
             }
+            .apply {
+                if (alarmAt != null) {
+                    val skip = PendingIntent.getService(
+                        context, 13, SleepTrackingService.skipAlarmIntent(context),
+                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                    )
+                    addAction(0, "Pas de réveil demain", skip)
+                }
+            }
             .addAction(0, "Terminer la nuit", stop)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .build()
@@ -185,6 +194,10 @@ object Notifications {
             context, 22, Intent(context, AlarmReceiver::class.java).setAction(AlarmReceiver.ACTION_SNOOZE),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        val backToSleep = PendingIntent.getBroadcast(
+            context, 23, Intent(context, AlarmReceiver::class.java).setAction(AlarmReceiver.ACTION_BACK_TO_SLEEP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         val n = NotificationCompat.Builder(context, if (gentle) CHANNEL_ALARM_SOFT else CHANNEL_ALARM)
             .setSmallIcon(R.drawable.ic_moon)
             .setContentTitle("Bonjour !")
@@ -198,6 +211,7 @@ object Notifications {
             .setAutoCancel(false)
             .addAction(0, "Je me lève", dismiss)
             .addAction(0, "Encore 9 min", snooze)
+            .addAction(0, "Je me rendors", backToSleep)
             .build()
         if (!gentle) n.flags = n.flags or Notification.FLAG_INSISTENT
         return n

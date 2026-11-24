@@ -45,7 +45,21 @@ data class HomeUi(
 
 class HomeViewModel(private val c: AppContainer) : ViewModel() {
 
+    /** Réveil de la prochaine nuit, selon les jours choisis et l'éventuelle exception de ce soir. */
+    private fun wantedTonight(profile: com.somnia.data.db.ProfileEntity): Boolean {
+        val wake = com.somnia.data.repository.NightPlanner.nextWakeAt(profile)
+        return c.reminderPrefs.alarmWanted(
+            com.somnia.data.repository.NightPlanner.eveningOf(wake), com.somnia.data.repository.NightPlanner.dayOfWeek(wake),
+        )
+    }
+
     private val alarmTonight = MutableStateFlow(true)
+
+    init {
+        viewModelScope.launch {
+            c.profileRepository.profile.collect { alarmTonight.value = wantedTonight(it) }
+        }
+    }
     private val usageEstimate = MutableStateFlow<PhoneUsageDetector.Estimate?>(null)
 
     val ui: StateFlow<HomeUi> = combine(
@@ -115,7 +129,12 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
         }
     }
 
-    fun setAlarmTonight(v: Boolean) { alarmTonight.value = v }
+    /** Interrupteur « réveil demain » : mémorisé pour cette nuit uniquement. */
+    fun setAlarmTonight(v: Boolean) {
+        val wake = com.somnia.data.repository.NightPlanner.nextWakeAt(ui.value.profile)
+        c.reminderPrefs.setAlarmForNight(com.somnia.data.repository.NightPlanner.eveningOf(wake), v)
+        alarmTonight.value = v
+    }
 
     fun setWakeTime(minutes: Int) {
         viewModelScope.launch { c.profileRepository.update { it.copy(targetWakeMin = minutes) } }

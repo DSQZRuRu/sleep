@@ -188,6 +188,19 @@ fun NightDetailScreen(vm: NightDetailViewModel, onBack: () -> Unit) {
                     style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
             }
         }
+        ui.sibling?.let { other ->
+            SomniaCard(accent = SomniaColors.Gold) {
+                SectionLabel("Nuit en deux morceaux ?")
+                Text(
+                    "Une autre partie de cette nuit est enregistrée (${TimeMath.format(Clock.minuteOfDay(other.startTime))}–" +
+                        "${TimeMath.format(Clock.minuteOfDay(other.wakeTime))}). Si vous vous êtes rendormi après un réveil, regroupez-les : " +
+                        "l'intervalle comptera comme un réveil nocturne et les récompenses seront recalculées sur la nuit entière.",
+                    style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted,
+                )
+                com.somnia.ui.game.GameButton("Fusionner les deux parties", onClick = vm::mergeWithSibling,
+                    color = SomniaColors.Gold, height = 46.dp, modifier = Modifier.fillMaxWidth())
+            }
+        }
         if (ui.phoneNotOnBed) Text(
             "⚠ Presque aucun mouvement détecté : le téléphone n'était probablement pas sur le matelas, les phases sont peu fiables.",
             style = MaterialTheme.typography.bodySmall, color = SomniaColors.Awake,

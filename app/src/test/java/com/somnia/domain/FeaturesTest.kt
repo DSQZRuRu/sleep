@@ -264,3 +264,22 @@ class AutoNightTrimmerTest {
         assertEquals(10, com.somnia.domain.sleep.AutoNightTrimmer.startIndex(stages, used))
     }
 }
+
+class NightMergerTest {
+    private val L = com.somnia.domain.sleep.SleepStage.LIGHT
+    private val A = com.somnia.domain.sleep.SleepStage.AWAKE
+
+    @Test
+    fun mergesTrackedAndManualParts() {
+        val min = 60_000L
+        // 1re partie mesurée : 10 min d'éveil puis 340 min de sommeil ; réveil, 5 min d'écart ; 2e partie de 180 min sans mesure.
+        val p1 = com.somnia.domain.sleep.NightMerger.Part(0, 350, List(10) { A } + List(340) { L })
+        val p2 = com.somnia.domain.sleep.NightMerger.Part(355 * min, 180, null)
+        val m = com.somnia.domain.sleep.NightMerger.merge(listOf(p2, p1), latencyMin = 15)
+        assertEquals(0L, m.start)
+        assertEquals(5, m.gapMinutes)
+        assertEquals(340 + 165, m.analysis.totalSleepMin)
+        assertEquals(10, m.analysis.latencyMin)
+        assertEquals(1, m.analysis.awakenings) // le réveil de l'alarme (5 + 15 min)
+    }
+}

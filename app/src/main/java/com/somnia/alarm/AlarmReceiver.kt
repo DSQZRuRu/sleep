@@ -10,6 +10,7 @@ class AlarmReceiver : BroadcastReceiver() {
             ACTION_DEADLINE -> AlarmController.ring(context)
             ACTION_DISMISS -> AlarmController.dismiss(context)
             ACTION_SNOOZE -> AlarmController.snooze(context)
+            ACTION_BACK_TO_SLEEP -> AlarmController.backToSleep(context)
         }
     }
 
@@ -17,5 +18,6 @@ class AlarmReceiver : BroadcastReceiver() {
         const val ACTION_DEADLINE = "com.somnia.alarm.DEADLINE"
         const val ACTION_DISMISS = "com.somnia.alarm.DISMISS"
         const val ACTION_SNOOZE = "com.somnia.alarm.SNOOZE"
+        const val ACTION_BACK_TO_SLEEP = "com.somnia.alarm.BACK_TO_SLEEP"
     }
 }

@@ -18,4 +18,9 @@ object NightPlanner {
 
     /** Heure limite du réveil pour une nuit qui commence maintenant. */
     fun nextWakeAt(profile: ProfileEntity): Long = nextOccurrence(profile.targetWakeMin, leadMin = 10)
+
+    /** Soir (epochDay) auquel appartient un réveil donné. */
+    fun eveningOf(wakeAt: Long): Long = Clock.nightDay(wakeAt)
+
+    fun dayOfWeek(ts: Long): Int = java.time.Instant.ofEpochMilli(ts).atZone(Clock.zone()).dayOfWeek.value
 }

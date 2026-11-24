@@ -67,6 +67,15 @@ interface SleepDao {
     @Query("SELECT * FROM epochs WHERE sessionId = :sessionId ORDER BY timestamp ASC")
     suspend fun epochs(sessionId: Long): List<EpochEntity>
 
+    @Insert
+    suspend fun insertEpochs(epochs: List<EpochEntity>)
+
+    @Query("DELETE FROM epochs WHERE sessionId = :sessionId")
+    suspend fun deleteEpochs(sessionId: Long)
+
+    @Query("SELECT * FROM sleep_sessions WHERE processed = 1 AND isNap = 0 AND id != :id AND startTime BETWEEN :from AND :to ORDER BY startTime DESC")
+    suspend fun processedNear(id: Long, from: Long, to: Long): List<SleepSessionEntity>
+
     @Query("DELETE FROM epochs WHERE sessionId = :sessionId AND timestamp < :before")
     suspend fun deleteEpochsBefore(sessionId: Long, before: Long)
 
@@ -168,6 +177,22 @@ interface GameDao {
 
     @Upsert
     suspend fun upsertLayout(item: RoomLayoutEntity)
+
+    // ---------- Fusion de nuits ----------
+    @Query("DELETE FROM night_rewards WHERE sessionId = :sessionId")
+    suspend fun deleteReward(sessionId: Long)
+
+    @Query("SELECT * FROM creature_catches WHERE sessionId = :sessionId")
+    suspend fun catchesForSession(sessionId: Long): List<CreatureCatchEntity>
+
+    @Query("DELETE FROM creature_catches WHERE sessionId = :sessionId")
+    suspend fun deleteCatchesForSession(sessionId: Long)
+
+    @Query("SELECT COUNT(*) FROM creature_catches WHERE creatureId = :creatureId")
+    suspend fun catchCount(creatureId: String): Int
+
+    @Query("DELETE FROM creature_progress WHERE creatureId = :creatureId")
+    suspend fun deleteProgress(creatureId: String)
 
     // ---------- Outils développeur ----------
     @Query("UPDATE creature_progress SET level = 1")

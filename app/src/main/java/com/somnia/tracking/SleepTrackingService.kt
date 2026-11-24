@@ -74,6 +74,7 @@ class SleepTrackingService : LifecycleService() {
         when (intent?.action) {
             ACTION_STOP -> stopTracking()
             ACTION_CANCEL -> cancelTracking()
+            ACTION_SKIP_ALARM -> skipAlarm()
             ACTION_START, null -> {
                 if (stopping) {
                     // Une session se termine encore : on relancera une fois la fermeture finie.
@@ -117,7 +118,10 @@ class SleepTrackingService : LifecycleService() {
             // (sauf soirée exceptionnelle : pas de réveil imposé).
             val exceptionalTonight = container.reminderPrefs.isExceptional(com.somnia.data.repository.Clock.nightDay(System.currentTimeMillis()))
             autoWakeTarget = NightPlanner.nextWakeAt(profile)
-            if (defaultAlarm && requestedAlarm == null && !exceptionalTonight) requestedAlarm = autoWakeTarget
+            val wanted = autoWakeTarget?.let {
+                container.reminderPrefs.alarmWanted(NightPlanner.eveningOf(it), NightPlanner.dayOfWeek(it))
+            } ?: false
+            if (defaultAlarm && requestedAlarm == null && !exceptionalTonight && wanted) requestedAlarm = autoWakeTarget
             Notifications.cancel(this@SleepTrackingService, Notifications.ID_REMINDER)
             val open = container.sleepRepository.openSession()
             if (resume && open == null) { stopSelf(); return@launch }
@@ -228,6 +232,16 @@ class SleepTrackingService : LifecycleService() {
             now >= wake + 3 * 3_600_000L -> stopTracking()
             now >= wake - 3 * 3_600_000L && sleepLikeMinutes >= 180 && interactiveStreak >= 15 -> stopTracking()
         }
+    }
+
+    /** « Pas de réveil demain » depuis la notification : le suivi continue, sans réveil. */
+    private fun skipAlarm() {
+        val target = alarmAt ?: autoWakeTarget
+        target?.let { container.reminderPrefs.setAlarmForNight(NightPlanner.eveningOf(it), false) }
+        alarmAt = null
+        container.alarmScheduler.cancel()
+        TrackingState.update { it.copy(alarmAt = null) }
+        if (started) enterForeground(null, micWanted = TrackingState.status.value.micActive)
     }
 
     /** « Pas ce soir » : le suivi automatique est annulé et la session effacée. */
@@ -375,6 +389,7 @@ class SleepTrackingService : LifecycleService() {
         const val EXTRA_NAP_MIN = "nap_min"
         const val EXTRA_AUTO = "auto"
         const val ACTION_CANCEL = "com.somnia.tracking.CANCEL"
+        const val ACTION_SKIP_ALARM = "com.somnia.tracking.SKIP_ALARM"
         private const val MAX_NIGHT_MS = 14 * 3_600_000L
 
         fun start(context: Context, alarmAt: Long?) {
@@ -393,6 +408,9 @@ class SleepTrackingService : LifecycleService() {
                 context, Intent(context, SleepTrackingService::class.java).setAction(ACTION_START).putExtra(EXTRA_AUTO, true),
             )
         }.isSuccess
+
+        fun skipAlarmIntent(context: Context): Intent =
+            Intent(context, SleepTrackingService::class.java).setAction(ACTION_SKIP_ALARM)
 
         fun cancelIntent(context: Context): Intent =
             Intent(context, SleepTrackingService::class.java).setAction(ACTION_CANCEL)

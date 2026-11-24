@@ -32,6 +32,22 @@ object AlarmController {
         SmartAlarmScheduler(context).schedule(System.currentTimeMillis() + SmartAlarmScheduler.SNOOZE_MIN * 60_000L)
     }
 
+    /**
+     * « Je me rendors » (réveil oublié) : la sonnerie s'arrête mais la nuit continue,
+     * sans nouvelle sonnerie. Si le suivi n'était pas lancé, il repart : la nouvelle partie
+     * sera regroupée avec la précédente le matin.
+     */
+    fun backToSleep(context: Context) {
+        AlarmSound.stop()
+        GentleAlarm.stop()
+        Notifications.cancel(context, Notifications.ID_ALARM)
+        SmartAlarmScheduler(context).cancel()
+        TrackingState.update { it.copy(ringing = false, alarmAt = null) }
+        if (!TrackingState.status.value.running) {
+            runCatching { SleepTrackingService.start(context, null) }
+        }
+    }
+
     /** Arrête la sonnerie et termine la nuit (analyse + récompenses). */
     fun dismiss(context: Context) {
         AlarmSound.stop()

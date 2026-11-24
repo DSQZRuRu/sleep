@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -99,6 +100,8 @@ data class NightDetailUi(
     val noise: List<Float> = emptyList(),
     val rewards: com.somnia.data.repository.StoredRewards? = null,
     val phoneNotOnBed: Boolean = false,
+    /** Autre partie de la même nuit (ex. rendormi après le réveil), à regrouper. */
+    val sibling: SleepSessionEntity? = null,
     val deleted: Boolean = false,
 )
 
@@ -113,7 +116,20 @@ class NightDetailViewModel(private val c: AppContainer, private val id: Long) : 
             _ui.value = NightDetailUi(
                 s, epochs.map { SleepStage.fromCode(it.stage) }, epochs.map { it.noiseDb }, c.gameRepository.reward(id),
                 phoneNotOnBed = com.somnia.domain.sleep.FactorInsights.phoneProbablyNotOnBed(epochs.map { it.motionCount }),
+                sibling = s?.let { me ->
+                    c.sleepRepository.history.first().firstOrNull {
+                        it.id != me.id && Clock.nightDay(it.startTime) == Clock.nightDay(me.startTime)
+                    }
+                },
             )
+        }
+    }
+
+    fun mergeWithSibling() {
+        val other = _ui.value.sibling ?: return
+        viewModelScope.launch {
+            c.nightProcessor.mergeSessions(other.id, id)
+            _ui.value = _ui.value.copy(deleted = true) // la nuit regroupée s'ouvre sur l'écran du matin
         }
     }
 

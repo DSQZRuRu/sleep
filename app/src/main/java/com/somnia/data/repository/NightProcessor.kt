@@ -16,6 +16,7 @@ import com.somnia.domain.game.DreamCreatureCatalog
 import com.somnia.domain.game.ExpeditionState
 import com.somnia.domain.sleep.AutoNightTrimmer
 import com.somnia.domain.sleep.MoonPhase
+import com.somnia.domain.sleep.NightMerger
 import com.somnia.domain.sleep.SleepGapFinder
 import com.somnia.domain.sleep.SleepStage
 import com.somnia.domain.game.EquippedCreature
@@ -60,7 +61,115 @@ class NightProcessor(
         val pre = sleepDao.session(sessionId)
         val gap = if (detectEarlierSleep && pre != null && !pre.isNap && !pre.processed && !pre.autoStarted)
             runCatching { sleepGapBefore(pre.startTime) }.getOrNull() else null
-        return finalizeInTransaction(sessionId, endTime, gap)
+        val id = finalizeInTransaction(sessionId, endTime, gap) ?: return null
+        // Rendormi après un réveil ? On regroupe avec la partie précédente de la nuit.
+        return if (detectEarlierSleep) mergeIfSameNight(id) else id
+    }
+
+    /**
+     * Si une autre nuit du même soir s'est terminée moins de 3 h avant le début de celle-ci
+     * (ex. réveillé par l'alarme, puis rendormi), les deux sont regroupées.
+     * @return l'id de la nuit finale.
+     */
+    suspend fun mergeIfSameNight(sessionId: Long): Long {
+        val s = sleepDao.session(sessionId) ?: return sessionId
+        if (!s.processed || s.isNap || s.startCandidate != null) return sessionId
+        val previous = sleepDao.processedNear(sessionId, s.startTime - 16 * 3_600_000L, s.startTime).firstOrNull { p ->
+            p.startCandidate == null &&
+                Clock.nightDay(p.startTime) == Clock.nightDay(s.startTime) &&
+                s.startTime - (p.endTime ?: p.wakeTime) <= NightMerger.MAX_GAP_MS
+        } ?: return sessionId
+        return mergeSessions(previous.id, sessionId)
+    }
+
+    /** Regroupe deux nuits en une seule (l'intervalle compte comme éveil), puis recalcule les récompenses. */
+    suspend fun mergeSessions(aId: Long, bId: Long): Long = db.withTransaction {
+        val a = sleepDao.session(aId) ?: return@withTransaction bId
+        val b = sleepDao.session(bId) ?: return@withTransaction aId
+        val (first, second) = if (a.startTime <= b.startTime) a to b else b to a
+        revertRewards(first)
+        revertRewards(second)
+        val profile = profileDao.get() ?: com.somnia.data.db.ProfileEntity()
+
+        val originals = mutableMapOf<Long, com.somnia.data.db.EpochEntity>()
+        fun minuteKey(ts: Long) = ts / 60_000L
+        suspend fun part(s: SleepSessionEntity): NightMerger.Part {
+            val ep = sleepDao.epochs(s.id)
+            ep.forEach { originals[minuteKey(it.timestamp)] = it }
+            return if (ep.isNotEmpty()) NightMerger.Part(ep.first().timestamp, ep.size, ep.map { SleepStage.fromCode(it.stage) })
+            else NightMerger.Part(s.startTime, (((s.endTime ?: s.wakeTime) - s.startTime) / 60_000L).toInt().coerceAtLeast(1), null)
+        }
+        val merged = NightMerger.merge(listOf(part(first), part(second)), profile.latencyMin.coerceIn(5, 30))
+
+        // Époques de la nuit regroupée : mesures d'origine quand elles existent, sinon minutes estimées.
+        sleepDao.deleteEpochs(first.id)
+        sleepDao.deleteEpochs(second.id)
+        sleepDao.insertEpochs(merged.stages.mapIndexed { i, st ->
+            val ts = merged.start + i * 60_000L
+            val o = originals[minuteKey(ts)]
+            com.somnia.data.db.EpochEntity(
+                sessionId = first.id, timestamp = ts, motionCount = o?.motionCount ?: 0f, noiseDb = o?.noiseDb ?: 0f,
+                loudEvents = o?.loudEvents ?: 0, snoreLike = o?.snoreLike ?: false, phoneUsed = o?.phoneUsed ?: false, stage = st.code,
+            )
+        })
+
+        val an = merged.analysis
+        val exceptional = first.exceptional || second.exceptional
+        val deviation = if (exceptional) 0 else TimeMath.diff(Clock.minuteOfDay(merged.start), first.targetBedMin)
+        val sensors = first.source == SessionSource.SENSORS || second.source == SessionSource.SENSORS
+        val updated = first.copy(
+            startTime = merged.start,
+            endTime = maxOf(first.endTime ?: first.wakeTime, second.endTime ?: second.wakeTime),
+            source = if (sensors) SessionSource.SENSORS else first.source,
+            micEnabled = first.micEnabled || second.micEnabled,
+            sleepOnset = an.sleepOnsetIndex?.let { merged.start + it * 60_000L },
+            finalWake = an.finalWakeIndex?.let { merged.start + (it + 1) * 60_000L },
+            totalSleepMin = an.totalSleepMin, lightMin = an.lightMin, deepMin = an.deepMin, awakeMin = an.awakeMin,
+            latencyMin = an.latencyMin, awakenings = an.awakenings, efficiency = an.efficiency,
+            score = SleepScoreCalculator.score(an, deviation, hasStages = sensors).total,
+            snoreMinutes = first.snoreMinutes + second.snoreMinutes,
+            factors = com.somnia.domain.sleep.SleepFactor.encode(
+                com.somnia.domain.sleep.SleepFactor.parse(first.factors) + com.somnia.domain.sleep.SleepFactor.parse(second.factors)
+            ),
+            ritualDone = first.ritualDone || second.ritualDone,
+            dreamNote = listOf(first.dreamNote, second.dreamNote).filter { it.isNotBlank() }.joinToString("\n"),
+            morningRating = second.morningRating ?: first.morningRating,
+            exceptional = exceptional,
+            processed = true,
+            rewardsSeen = false,
+            startCandidate = null,
+        )
+        sleepDao.updateSession(updated)
+        sleepDao.deleteSession(second.id)
+        grantRewards(updated)
+        first.id
+    }
+
+    /** Retire les récompenses déjà attribuées à une nuit (avant de la regrouper avec une autre). */
+    private suspend fun revertRewards(s: SleepSessionEntity) {
+        val r = gameDao.reward(s.id) ?: return
+        val xp = r.xpLines.split(";").mapNotNull { it.substringAfterLast("|", "").toIntOrNull() }.sum()
+        val summary = s.toSummary()
+        val care = com.somnia.domain.game.CompanionLogic.careForNight(s.score, summary.regular, summary.healthyDuration)
+        val st = gameDao.state() ?: GameStateEntity()
+        gameDao.upsertState(
+            st.copy(
+                totalXp = (st.totalXp - xp).coerceAtLeast(0),
+                stardust = (st.stardust - r.stardustGained).coerceAtLeast(0),
+                companionCare = (st.companionCare - care).coerceAtLeast(0),
+                expeditionProgress = if (r.regionsCompleted.isBlank()) (st.expeditionProgress - r.expeditionSteps).coerceAtLeast(0)
+                else st.expeditionProgress,
+            )
+        )
+        val caught = gameDao.catchesForSession(s.id).map { it.creatureId }.toSet()
+        gameDao.deleteCatchesForSession(s.id)
+        for (id in caught) {
+            val n = gameDao.catchCount(id)
+            val creature = DreamCreatureCatalog.byId(id) ?: continue
+            if (n == 0) gameDao.deleteProgress(id)
+            else com.somnia.domain.game.CreatureStars.addDuplicates(creature.rarity, 0, 0, n - 1).let { gameDao.setStars(id, it.stars, it.shards) }
+        }
+        gameDao.deleteReward(s.id)
     }
 
     private suspend fun finalizeInTransaction(sessionId: Long, endTime: Long, gap: SleepGapFinder.Gap?): Long? = db.withTransaction {
@@ -146,7 +255,12 @@ class NightProcessor(
      * les capteurs, compte comme sommeil léger estimé, après le temps d'endormissement habituel.
      * Le réveil pour lancer le suivi devient un réveil nocturne. Puis les récompenses sont attribuées.
      */
-    suspend fun resolveStartCandidate(sessionId: Long, accept: Boolean) = db.withTransaction {
+    suspend fun resolveStartCandidate(sessionId: Long, accept: Boolean) {
+        resolveInTransaction(sessionId, accept)
+        mergeIfSameNight(sessionId)
+    }
+
+    private suspend fun resolveInTransaction(sessionId: Long, accept: Boolean) = db.withTransaction {
         val s = sleepDao.session(sessionId) ?: return@withTransaction
         val candidate = s.startCandidate ?: return@withTransaction
         val prefixMin = ((s.startTime - candidate) / 60_000L).toInt()
@@ -241,7 +355,7 @@ class NightProcessor(
         )
         grantRewards(sleepDao.session(id)!!)
         id
-    }
+    }.let { mergeIfSameNight(it) }
 
     suspend fun setMorningRating(sessionId: Long, rating: Int) = db.withTransaction {
         val s = sleepDao.session(sessionId) ?: return@withTransaction

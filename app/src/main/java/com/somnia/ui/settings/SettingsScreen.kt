@@ -66,6 +66,16 @@ fun SettingsScreen(vm: SettingsViewModel, updates: UpdateViewModel, onBack: () -
         SomniaCard {
             SectionLabel("Heure de lever")
             TimeStepper(p.targetWakeMin, { m -> vm.update { it.copy(targetWakeMin = m) } }, step = 5)
+            SectionLabel("Jours du réveil")
+            val days by vm.alarmDays.collectAsStateWithLifecycle()
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                listOf("L", "M", "M", "J", "V", "S", "D").forEachIndexed { i, label ->
+                    FilterChip(selected = (i + 1) in days, onClick = { vm.toggleAlarmDay(i + 1) }, label = { Text(label) })
+                }
+            }
+            Text("Le réveil (y compris celui du suivi automatique) ne sonne que ces matins-là. " +
+                "Pour une nuit particulière, utilisez l'interrupteur « Réveil demain » de l'accueil ou « Pas de réveil demain » dans la notification.",
+                style = MaterialTheme.typography.bodySmall, color = SomniaColors.Muted)
             SectionLabel("Réveil intelligent")
             ToggleRow("Sonner en sommeil léger avant l'heure", p.smartAlarmEnabled) { v -> vm.update { it.copy(smartAlarmEnabled = v) } }
             if (p.smartAlarmEnabled) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

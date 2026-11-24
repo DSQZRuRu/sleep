@@ -227,7 +227,7 @@ fun HomeScreen(
         SomniaCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    SectionLabel("Réveil intelligent")
+                    SectionLabel(if (ui.alarmTonight) "Réveil demain" else "Pas de réveil demain")
                     Text(
                         if (ui.profile.smartAlarmEnabled) "Sonne en sommeil léger, dans les ${ui.profile.smartWindowMin} min avant"
                         else "Sonne à l'heure exacte",
