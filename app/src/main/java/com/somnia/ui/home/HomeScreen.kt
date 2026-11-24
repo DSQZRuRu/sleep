@@ -258,8 +258,9 @@ fun HomeScreen(
             }
         }
 
+        val trackingStatus by com.somnia.tracking.TrackingState.status.collectAsStateWithLifecycle()
         GameButton(
-            "Commencer ma nuit",
+            if (trackingStatus.running) "Afficher l'écran de nuit" else "Commencer ma nuit",
             onClick = { SleepTrackingService.start(context, vm.nextAlarmAt()) },
             modifier = Modifier.fillMaxWidth(),
             height = 64.dp,

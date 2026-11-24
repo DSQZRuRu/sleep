@@ -50,6 +50,7 @@ class SleepTrackingService : LifecycleService() {
     private val motionHistory = ArrayList<Float>()
     private var stopping = false
     private var started = false
+    private var pendingStart: Intent? = null
     private var napMode: Int? = null
     private var autoMode = false
     private var autoWakeTarget: Long? = null
@@ -74,20 +75,34 @@ class SleepTrackingService : LifecycleService() {
             ACTION_STOP -> stopTracking()
             ACTION_CANCEL -> cancelTracking()
             ACTION_START, null -> {
-                val requestedAlarm = intent?.getLongExtra(EXTRA_ALARM_AT, -1L)?.takeIf { it > 0 }
-                val defaultAlarm = intent?.getBooleanExtra(EXTRA_DEFAULT_ALARM, false) ?: false
-                val nap = intent?.getIntExtra(EXTRA_NAP_MIN, 0)?.takeIf { it > 0 }
-                val auto = intent?.getBooleanExtra(EXTRA_AUTO, false) ?: false
-                startTracking(requestedAlarm, resume = intent == null, defaultAlarm = defaultAlarm || auto, napMin = nap, auto = auto)
+                if (stopping) {
+                    // Une session se termine encore : on relancera une fois la fermeture finie.
+                    if (intent != null) pendingStart = Intent(intent)
+                    return START_STICKY
+                }
+                handleStart(intent)
             }
         }
         return START_STICKY
     }
 
+    private fun handleStart(intent: Intent?) {
+        val requestedAlarm = intent?.getLongExtra(EXTRA_ALARM_AT, -1L)?.takeIf { it > 0 }
+        val defaultAlarm = intent?.getBooleanExtra(EXTRA_DEFAULT_ALARM, false) ?: false
+        val nap = intent?.getIntExtra(EXTRA_NAP_MIN, 0)?.takeIf { it > 0 }
+        val auto = intent?.getBooleanExtra(EXTRA_AUTO, false) ?: false
+        startTracking(requestedAlarm, resume = intent == null, defaultAlarm = defaultAlarm || auto, napMin = nap, auto = auto)
+    }
+
     private fun startTracking(
         requestedAlarmArg: Long?, resume: Boolean, defaultAlarm: Boolean = false, napMin: Int? = null, auto: Boolean = false,
     ) {
-        if (started) return // déjà en cours (ex. lancé automatiquement) : on garde la session actuelle
+        if (started) {
+            // Déjà en cours (ex. lancé automatiquement) : on garde la session, mais un lancement
+            // manuel affiche l'écran de nuit (le découpage et la fin automatiques restent actifs).
+            if (!auto && !stopping) TrackingState.update { it.copy(auto = false) }
+            return
+        }
         started = true
         var requestedAlarm = requestedAlarmArg
         autoMode = auto
@@ -231,9 +246,31 @@ class SleepTrackingService : LifecycleService() {
                 releaseWakeLock()
                 TrackingState.set(TrackingStatus())
             }
-            ServiceCompat.stopForeground(this@SleepTrackingService, ServiceCompat.STOP_FOREGROUND_REMOVE)
-            stopSelf()
+            if (!restartIfRequested()) {
+                ServiceCompat.stopForeground(this@SleepTrackingService, ServiceCompat.STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }
+    }
+
+    /** Un lancement est arrivé pendant la fermeture : on repart de zéro dans ce même service. */
+    private fun restartIfRequested(): Boolean {
+        val next = pendingStart ?: return false
+        pendingStart = null
+        started = false
+        stopping = false
+        sessionId = null
+        tickerJob = null
+        alarmAt = null
+        napMode = null
+        autoMode = false
+        autoWakeTarget = null
+        sleepLikeMinutes = 0
+        interactiveStreak = 0
+        phoneUsedThisMinute = false
+        motionHistory.clear()
+        handleStart(next)
+        return true
     }
 
     private suspend fun ring(id: Long) {
@@ -273,8 +310,10 @@ class SleepTrackingService : LifecycleService() {
                     }
                 }
             }
-            ServiceCompat.stopForeground(this@SleepTrackingService, ServiceCompat.STOP_FOREGROUND_REMOVE)
-            stopSelf()
+            if (!restartIfRequested()) {
+                ServiceCompat.stopForeground(this@SleepTrackingService, ServiceCompat.STOP_FOREGROUND_REMOVE)
+                stopSelf()
+            }
         }
     }
 
